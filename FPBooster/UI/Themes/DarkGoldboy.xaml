@@ -1,0 +1,18 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Color x:Key="ColorPanelAlt">#080808</Color>
+    <Color x:Key="ColorBorder">#333333</Color>
+    <Color x:Key="ColorAccent">#FFD700</Color>
+    <Color x:Key="ColorAccentLight">#FFE57F</Color>
+    <Color x:Key="ColorAccentDeep">#C6A700</Color>
+    <Color x:Key="ColorText">#FFFBF0</Color>
+    <Color x:Key="ColorSubText">#8D8D8D</Color>
+
+    <SolidColorBrush x:Key="BrushPanelAlt" Color="{StaticResource ColorPanelAlt}"/>
+    <SolidColorBrush x:Key="BrushBorder" Color="{StaticResource ColorBorder}"/>
+    <SolidColorBrush x:Key="BrushAccent" Color="{StaticResource ColorAccent}"/>
+    <SolidColorBrush x:Key="BrushAccentLight" Color="{StaticResource ColorAccentLight}"/>
+    <SolidColorBrush x:Key="BrushAccentDeep" Color="{StaticResource ColorAccentDeep}"/>
+    <SolidColorBrush x:Key="BrushText" Color="{StaticResource ColorText}"/>
+    <SolidColorBrush x:Key="BrushSubText" Color="{StaticResource ColorSubText}"/>
+</ResourceDictionary>
