@@ -1,0 +1,522 @@
+<Window x:Class="FPBooster.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="FPBooster"
+        Height="820" Width="1360"
+        MinWidth="960" MinHeight="640"
+        
+        Icon="pack://application:,,,/FPBooster;component/UI/Resources/icon.ico" 
+        
+        WindowStartupLocation="CenterScreen"
+        Background="#0D0D13"
+        Loaded="OnLoaded"
+        Closing="OnClosing"
+        AllowDrop="True"
+        PreviewDragOver="Window_PreviewDragOver"
+        Drop="Window_Drop">
+
+    <Window.Resources>
+        <Style x:Key="HeaderText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushAccentLight}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="SubHeaderText" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushSubText}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14"/>
+            <Setter Property="Background" Value="#661A1A2A"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Color="#26000000"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TopBarButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="TB" Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TB" Property="Background" Value="#1F1F2A"/>
+                                <Setter TargetName="TB" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="#22000000"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="TB" Property="Background" Value="#16161D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ToolBar">
+            <Setter Property="Background" Value="{DynamicResource BrushPanelAlt}"/>
+            <Setter Property="Padding" Value="6"/>
+        </Style>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="#66141420"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="6"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="AllowDrop" Value="True"/>
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Margin" Value="0,1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBorder" CornerRadius="6" Background="{TemplateBinding Background}">
+                            <ContentPresenter Margin="6,2" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#661E2230"/>
+                                <Setter TargetName="ItemBorder" Property="BorderThickness" Value="1"/>
+                                <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource BrushAccentDeep}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ItemBorder" Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ContextMenu x:Key="NodeListContextMenu">
+            <MenuItem Header="Открыть в браузере" Click="OnOpenNodeInBrowser"/>
+            <Separator/>
+            <MenuItem Header="Скопировать выделенные" Click="OnCopyNodesClick"/>
+            <MenuItem Header="Удалить выделенные" Click="RemoveNode_Click"/>
+            <MenuItem Header="Очистить список" Click="ClearNodes_Click"/>
+        </ContextMenu>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Gesture="Ctrl+C" Command="{x:Static ApplicationCommands.Copy}"/>
+        <KeyBinding Gesture="Ctrl+A" Command="{x:Static ApplicationCommands.SelectAll}"/>
+    </Window.InputBindings>
+
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BrushPanelAlt}" Padding="12">
+            <DockPanel LastChildFill="False">
+                <TextBlock Text="FPBooster"
+                           FontSize="28"
+                           FontWeight="Black"
+                           Foreground="{DynamicResource BrushAccentLight}"
+                           Margin="12,0,40,0"
+                           VerticalAlignment="Center"
+                           DockPanel.Dock="Left"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Left">
+                    <Button Content="ℹ О софте" Style="{StaticResource TopBarButton}" Margin="6,0" Click="OnAboutClick"/>
+                    <Button Content="💬 Поддержка" Style="{StaticResource TopBarButton}" Margin="6,0" Click="OnSupportClick"/>
+                    <Button Content="⬆ Обновления" Style="{StaticResource TopBarButton}" Margin="6,0" Click="OnUpdatesClick"/>
+                    <Button Content="📜 О лицензии" Style="{StaticResource TopBarButton}" Margin="6,0" Click="OnLicenseClick"/>
+                    <Button Content="🍃 Eco Mode" Style="{StaticResource TopBarButton}" Margin="6,0" 
+                        Click="OnEcoModeClick" ToolTip="Свернуть в трей и снизить нагрузку на CPU/RAM"/>
+                    <Button Content="🤝 Поддержка автора" Style="{StaticResource TopBarButton}" Margin="6,0" Click="OnAuthorClick"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" DockPanel.Dock="Right">
+                    <TextBlock Text="Тема:" Foreground="{DynamicResource BrushSubText}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="ThemeCombo" Width="190" SelectionChanged="ThemeCombo_Changed">
+                        <ComboBoxItem Content="Midnight Blue"/>
+                        <ComboBoxItem Content="Dark Goldboy"/>
+                        <ComboBoxItem Content="Celestial"/>
+                    </ComboBox>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid>
+            <Grid x:Name="DashboardGrid">
+                <Image x:Name="RightBackgroundImage"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       Stretch="Uniform"
+                       Width="400" 
+                       MaxHeight="500" 
+                       Opacity="0.25"
+                       Panel.ZIndex="0"
+                       IsHitTestVisible="False"
+                       SnapsToDevicePixels="True"
+                       Margin="0,0,20,0"/>
+
+                <Canvas x:Name="ThemeParticles"
+                        IsHitTestVisible="False"
+                        Panel.ZIndex="1"
+                        Visibility="Collapsed"/>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <Grid Margin="18">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="14"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="280"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="520"/>
+                            <ColumnDefinition Width="22"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="22"/>
+                            <ColumnDefinition Width="360"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Border Style="{StaticResource Card}" Grid.Row="0" Grid.Column="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <TextBlock Text="ВАШИ NODEID (РАЗДЕЛЫ)" Style="{StaticResource HeaderText}" Grid.Row="0"/>
+
+                                <Grid Grid.Row="1" Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="150"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBox x:Name="NodeInput"
+                                             Grid.Column="0"
+                                             MinWidth="120"
+                                             VerticalAlignment="Center"
+                                             Tag="Введите ID (например 123)"
+                                             ToolTip="Введите ID или URL раздела"
+                                             PreviewKeyDown="NodeInput_PreviewKeyDown"
+                                             Drop="NodeInput_Drop"/>
+                                    <Button Content="Добавить" Grid.Column="1" Width="140" Margin="8,0,0,0" Click="AddNode_Click" Style="{StaticResource PrimaryButton}"/>
+                                </Grid>
+
+                                <ListBox x:Name="NodeList"
+                                         Grid.Row="2"
+                                         VerticalAlignment="Stretch"
+                                         HorizontalAlignment="Stretch"
+                                         MouseDoubleClick="NodeList_MouseDoubleClick"
+                                         PreviewKeyDown="NodeList_PreviewKeyDown"
+                                         Drop="NodeList_Drop"
+                                         SelectionMode="Extended"
+                                         ContextMenu="{StaticResource NodeListContextMenu}"/>
+
+                                <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0" HorizontalAlignment="Left">
+                                    <Button Content="Удалить" Width="120" Height="36" Click="RemoveNode_Click" Style="{StaticResource SecondaryButton}"/>
+                                    <Button Content="Очистить" Width="100" Height="36" Margin="8,0,0,0" Click="ClearNodes_Click" Style="{StaticResource SecondaryButton}"/>
+                                    <Button Content="Скопировать" Width="120" Height="36" Margin="8,0,0,0" Click="OnCopyNodesClick" Style="{StaticResource SecondaryButton}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Grid.Row="0" Grid.Column="2">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="12"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="24"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0">
+                                    <TextBlock Text="GOLDEN KEY" Style="{StaticResource HeaderText}"/>
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="160"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBox x:Name="GoldenKeyInput"
+                                                 Grid.Column="0"
+                                                 MinWidth="200"
+                                                 VerticalAlignment="Center"
+                                                 Tag="Вставьте ключ сюда"
+                                                 ToolTip="Вставьте Golden Key из Cookies"
+                                                 PreviewKeyDown="GoldenKeyInput_PreviewKeyDown"
+                                                 Drop="GoldenKeyInput_Drop"/>
+                                        <Button Grid.Column="1" Content="Сохранить" Width="140" Margin="8,0,0,0" Click="SaveGoldenKey_Click" Style="{StaticResource PrimaryButton}"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="2">
+                                    <TextBlock Text="АВТО-ПОИСК РАЗДЕЛОВ" Style="{StaticResource HeaderText}"/>
+                                    <Button Content="🔄 Извлечь активные Node ID" 
+                                            Height="42"
+                                            Margin="0,6,0,12"
+                                            Click="OnExtractNodesClick" 
+                                            Style="{StaticResource SecondaryButton}"
+                                            HorizontalAlignment="Stretch"/>
+
+                                    <Border Background="#339D4EDD" CornerRadius="8" Padding="12">
+                                        <StackPanel>
+                                            <TextBlock Text="💡 Внимание" Foreground="#FFD6BCFA" FontWeight="Bold" Margin="0,0,0,4"/>
+                                            <TextBlock Text="Если у вас есть неактивные лоты, которые не отображаются в профиле, введите их NodeID вручную в левом блоке."
+                                                       Foreground="#BBFFFFFF" 
+                                                       FontSize="12" 
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <Border Grid.Row="4" 
+                                        Background="#152ECC71" 
+                                        BorderBrush="#332ECC71" 
+                                        BorderThickness="1"
+                                        CornerRadius="8" 
+                                        Padding="12,8" 
+                                        VerticalAlignment="Bottom"
+                                        MinHeight="46">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="🔗" Foreground="#FF2ECC71" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="АККАУНТ" Foreground="#FF2ECC71" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        
+                                        <TextBlock x:Name="LicenseStatus" 
+                                                   Grid.Column="1"
+                                                   Text="Не подключено" 
+                                                   Foreground="White" 
+                                                   FontWeight="SemiBold" 
+                                                   FontSize="13"
+                                                   TextAlignment="Right"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"/>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Grid.Row="0" Grid.Column="4">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="ИНФОРМАЦИЯ" Style="{StaticResource HeaderText}"/>
+                                    
+                                    <TextBlock Foreground="{DynamicResource BrushText}" TextWrapping="Wrap" FontSize="13" LineHeight="18">
+                                        <Run FontWeight="Bold" Foreground="#E0AAFF">FPBooster</Run> — ваш надежный помощник для FunPay.
+                                        Безопасная автоматизация без передачи данных.
+                                    </TextBlock>
+                                    
+                                    <Separator Margin="0,15,0,15" Background="{DynamicResource BrushBorder}" Height="1"/>
+                                    
+                                    <TextBlock Text="Как настроить:" Style="{StaticResource SubHeaderText}" Margin="0,0,0,5"/>
+                                    
+                                    <StackPanel Margin="0,5,0,0">
+                                        <TextBlock Foreground="{DynamicResource BrushSubText}" TextWrapping="Wrap" Margin="0,0,0,8">
+                                            <Run Foreground="{DynamicResource BrushAccentLight}" FontWeight="Bold">1.</Run> Зайдите на FunPay, нажмите <Run FontWeight="Bold">F12</Run> → Application → Cookies.
+                                        </TextBlock>
+                                        <TextBlock Foreground="{DynamicResource BrushSubText}" TextWrapping="Wrap" Margin="0,0,0,8">
+                                            <Run Foreground="{DynamicResource BrushAccentLight}" FontWeight="Bold">2.</Run> Найдите <Run FontStyle="Italic">golden_key</Run>, скопируйте его значение и вставьте в поле в центре.
+                                        </TextBlock>
+                                        <TextBlock Foreground="{DynamicResource BrushSubText}" TextWrapping="Wrap" Margin="0,0,0,8">
+                                            <Run Foreground="{DynamicResource BrushAccentLight}" FontWeight="Bold">3.</Run> Нажмите <Run FontWeight="Bold">«Извлечь активные»</Run>.
+                                            Если нужны скрытые разделы — добавьте их ID вручную слева.
+                                        </TextBlock>
+                                    </StackPanel>
+
+                                    <Separator Margin="0,10,0,15" Background="{DynamicResource BrushBorder}" Height="1"/>
+                                    
+                                    <TextBlock Text="Безопасность и советы:" Style="{StaticResource SubHeaderText}" Margin="0,0,0,5"/>
+                                    <StackPanel Margin="0,5,0,0">
+                                        <TextBlock Foreground="{DynamicResource BrushSubText}" TextWrapping="Wrap" Margin="0,0,0,6">
+                                            • <Run FontWeight="SemiBold" Foreground="#FFD6BCFA">Софт работает локально.</Run> Ключи и данные не отправляются на сторонние серверы.
+                                        </TextBlock>
+                                        <TextBlock Foreground="{DynamicResource BrushSubText}" TextWrapping="Wrap" Margin="0,0,0,6">
+                                            • <Run FontWeight="SemiBold" Foreground="#FFD6BCFA">Избегайте спама.</Run> При массовых действиях софт делает паузы. Не закрывайте окно.
+                                        </TextBlock>
+                                        <TextBlock Foreground="{DynamicResource BrushSubText}" TextWrapping="Wrap">
+                                            • <Run FontWeight="SemiBold" Foreground="#FFD6BCFA">Прокси.</Run> Софт использует ваш системный IP.
+                                        </TextBlock>
+                                    </StackPanel>
+
+                                    <Separator Margin="0,15,0,15" Background="{DynamicResource BrushBorder}" Height="1"/>
+                                    
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <TextBlock Text="Dev by:" Foreground="#66FFFFFF" FontSize="11" Margin="0,0,5,0"/>
+                                        <TextBlock Text="@Manavoid_228" Foreground="#88AAFF" FontSize="11" FontWeight="Bold" Cursor="Hand"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" Grid.Row="2" Grid.ColumnSpan="5">
+                            <DockPanel>
+                                <TextBlock Text="ИНСТРУМЕНТЫ" Style="{StaticResource HeaderText}" DockPanel.Dock="Top"/>
+                                <UniformGrid Rows="2" Columns="3" Margin="0,8,0,0">
+                                    <Button Content="АВТО ПОДНЯТИЕ (LOCAL)" Height="54" Margin="8" 
+                                            Click="OpenAutoBump_Click" 
+                                            Style="{StaticResource PrimaryButton}"/>
+                                    
+                                    <Button Content="☁️ FPBOOSTER PLUS" Height="54" Margin="8" 
+                                            Click="OpenPlusCloud_Click" 
+                                            Style="{StaticResource PrimaryButton}" 
+                                            BorderBrush="#9B4BFF" BorderThickness="2">
+                                        <Button.Effect>
+                                            <DropShadowEffect Color="#9B4BFF" BlurRadius="15" Opacity="0.4"/>
+                                        </Button.Effect>
+                                    </Button>
+
+                                    <Button Content="УДАЛЕНИЕ ЛОТОВ" Height="54" Margin="8" 
+                                            Click="OpenLotsDelete_Click" 
+                                            Style="{StaticResource PrimaryButton}"/>
+
+                                    <Button Content="АВТОПОПОЛНЕНИЕ (LOCAL)" Height="54" Margin="8" 
+                                            Click="OpenAutoRestock_Click" 
+                                            Style="{StaticResource PrimaryButton}"/>
+
+                                    <Button Content="СТАТИСТИКА ПРОФИЛЯ" Height="54" Margin="8" 
+                                            Click="OpenAdvProfileStat_Click" 
+                                            Style="{StaticResource PrimaryButton}"/>
+                                    
+                                    <Button Content="ЕЩЁ…" Height="54" Margin="8" 
+                                            Style="{StaticResource PrimaryButton}" 
+                                            Click="OnMoreButtonClick">
+                                        <Button.ContextMenu>
+                                            <ContextMenu x:Name="MoreMenu">
+                                                <MenuItem Header="Активация/деактивация лотов" Click="OpenLotsToggle_Click"/>
+                                                <MenuItem Header="Удаление лотов" Click="OpenLotsDelete_Click"/>
+                                                <MenuItem Header="Статистика профиля" Click="OpenAdvProfileStat_Click"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                    </Button>
+                                </UniformGrid>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}" 
+                                Grid.Row="3" Grid.ColumnSpan="5" 
+                                Background="#660E0E18" 
+                                Margin="0,24,0,0">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="ЛОГ" Style="{StaticResource HeaderText}" VerticalAlignment="Center"/>
+                                    <Button Content="Очистить"
+                                            Style="{StaticResource SecondaryButton}"
+                                            Width="100"
+                                            Height="26"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Click="ClearLog_Click"/>
+                                </StackPanel>
+
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Background="#660A0A12">
+                                    <ItemsControl x:Name="LogBox">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Text}"
+                                                           Foreground="{Binding Color}"
+                                                           FontFamily="Consolas"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap"/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+
+            <Border x:Name="PluginArea"
+                    Background="Transparent"
+                    Visibility="Collapsed"
+                    Panel.ZIndex="10">
+                <Grid>
+                    <Border x:Name="PluginBackgroundOverlay"
+                            Background="#661A1A2A"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Panel.ZIndex="0"/>
+
+                    <Image x:Name="PluginBannerImage"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Stretch="Uniform"
+                           Width="350"
+                           MaxHeight="450"
+                           Opacity="0.25"
+                           Panel.ZIndex="1"
+                           IsHitTestVisible="False"
+                           SnapsToDevicePixels="True"
+                           Margin="0,0,15,0"/>
+
+                    <Canvas x:Name="PluginParticles"
+                            IsHitTestVisible="False"
+                            Panel.ZIndex="2"
+                            Visibility="Collapsed"/>
+
+                    <DockPanel Margin="18">
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                            <Button Content="← Назад" Click="OnBackFromPlugin_Click"
+                                    Style="{StaticResource SecondaryButton}" Margin="0,0,8,12"/>
+                            <TextBlock Text="Экран инструмента" Style="{StaticResource HeaderText}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Border Style="{StaticResource Card}">
+                            <ContentControl x:Name="PluginHost"/>
+                        </Border>
+                    </DockPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource BrushPanelAlt}" Padding="8,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Golden Key:" Foreground="{DynamicResource BrushSubText}" Margin="0,0,6,0"/>
+                    <TextBlock x:Name="GoldenKeyMasked" Text="—" Foreground="{DynamicResource BrushText}" Margin="0,0,12,0"/>
+                    <TextBlock Text="NodeID:" Foreground="{DynamicResource BrushSubText}" Margin="0,0,6,0"/>
+                    <TextBlock x:Name="NodeCount" Text="0" Foreground="{DynamicResource BrushText}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Grid.Column="1">
+                    <TextBlock Text="Тема:" Foreground="{DynamicResource BrushSubText}" Margin="0,0,6,0"/>
+                    <TextBlock x:Name="ThemeName" Text="—" Foreground="{DynamicResource BrushText}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </DockPanel>
+</Window>
