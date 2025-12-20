@@ -221,8 +221,8 @@
 
                         <Button Style="{StaticResource CloudModuleCard}" 
                                 Tag="Auto Restock Cloud" 
-                                Content="Автовыдача товаров. (Скоро)"
-                                IsEnabled="False">
+                                Content="Автовыдача товаров. Автоматическое пополнение ключей из базы."
+                                Click="OpenAutoRestock_Click">
                             <Button.RenderTransform>
                                 <ScaleTransform/>
                             </Button.RenderTransform>

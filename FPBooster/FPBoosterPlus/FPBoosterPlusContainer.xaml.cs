@@ -1,9 +1,9 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Media.Animation; // Для анимации
+using System.Windows.Media.Animation;
 using FPBooster.Plugins;
 
-// Устранение конфликта имен
 using UserControl = System.Windows.Controls.UserControl;
 
 namespace FPBooster.FPBoosterPlus
@@ -13,22 +13,34 @@ namespace FPBooster.FPBoosterPlus
         public string Id => "fp_plus_dashboard"; 
         public string DisplayName => "FPBooster Plus";
 
+        // Общий лог
+        private readonly ObservableCollection<FPBooster.MainWindow.LogEntry> _sharedCloudLog = new ObservableCollection<FPBooster.MainWindow.LogEntry>();
+
         private readonly CloudDashboardView _dashboardView;
         private readonly CloudAutoBumpView _autoBumpView;
+        private readonly CloudAutoRestockView _restockView;
 
         public FPBoosterPlusContainer()
         {
             InitializeComponent();
             
-            // Создаем экраны один раз
             _dashboardView = new CloudDashboardView();
+            
+            // Инициализация БЕЗ аргументов
             _autoBumpView = new CloudAutoBumpView();
+            _restockView = new CloudAutoRestockView();
+
+            // Передаем лог вручную
+            _autoBumpView.SetSharedLog(_sharedCloudLog);
+            _restockView.SetSharedLog(_sharedCloudLog);
 
             // Навигация
             _dashboardView.NavigateToAutoBump += () => NavigateTo(_autoBumpView);
-            _autoBumpView.NavigateBack += () => NavigateTo(_dashboardView);
+            _dashboardView.NavigateToAutoRestock += () => NavigateTo(_restockView);
 
-            // Показываем дашборд сразу (без анимации)
+            _autoBumpView.NavigateBack += () => NavigateTo(_dashboardView);
+            _restockView.NavigateBack += () => NavigateTo(_dashboardView);
+
             NavigateTo(_dashboardView, false);
         }
 
@@ -39,30 +51,17 @@ namespace FPBooster.FPBoosterPlus
                 MainContentArea.Content = view;
                 return;
             }
-
-            // Анимация исчезновения старого экрана
             var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(150));
-            fadeOut.Completed += (s, e) => 
-            {
-                // Смена контента
+            fadeOut.Completed += (s, e) => {
                 MainContentArea.Content = view;
-                
-                // Анимация появления нового экрана
-                var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
-                MainContentArea.BeginAnimation(OpacityProperty, fadeIn);
+                MainContentArea.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200)));
             };
-            
             MainContentArea.BeginAnimation(OpacityProperty, fadeOut);
         }
 
         public UserControl GetView() => this;
-
-        public void InitNodes(System.Collections.Generic.IEnumerable<string> nodes, string goldenKey) 
-        {
-             _autoBumpView.InitNodes(nodes, goldenKey);
-        }
-        
-        public void BindLog(System.Collections.ObjectModel.ObservableCollection<FPBooster.MainWindow.LogEntry> sharedLog) { }
+        public void InitNodes(System.Collections.Generic.IEnumerable<string> nodes, string goldenKey) => _autoBumpView.InitNodes(nodes, goldenKey);
+        public void BindLog(ObservableCollection<FPBooster.MainWindow.LogEntry> sharedLog) { }
         public void SetTheme(string themeKey) { }
     }
 }

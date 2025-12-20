@@ -1,114 +1,152 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using FPBooster.ServerApi;
 using FPBooster.Config;
 
-// ЯВНЫЕ ПСЕВДОНИМЫ ДЛЯ WPF (чтобы не путать с WinForms)
 using UserControl = System.Windows.Controls.UserControl;
+using TextBox = System.Windows.Controls.TextBox;
+using ListBox = System.Windows.Controls.ListBox;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Application = System.Windows.Application;
 using Button = System.Windows.Controls.Button;
-using MessageBox = System.Windows.MessageBox;
 
 namespace FPBooster.FPBoosterPlus
 {
     public partial class CloudAutoRestockView : UserControl
     {
         public event Action NavigateBack;
+        public ObservableCollection<FPBooster.MainWindow.LogEntry> Logs { get; private set; } = new ObservableCollection<FPBooster.MainWindow.LogEntry>();
         
-        private List<CloudApiClient.LotRestockConfig> _lots = new List<CloudApiClient.LotRestockConfig>();
-
-        public class LotViewModel : CloudApiClient.LotRestockConfig 
+        public class OfferViewModel
         {
-            public string KeysInfo { get; set; } = "Ключей в буфере: 0";
+            public string NodeId { get; set; } = "";
+            public string OfferId { get; set; } = "";
+            public string Name { get; set; } = "";
+            public int MinQty { get; set; } = 5;
+            public string KeysToAddRaw { get; set; } = ""; 
+            public string StatusInfo { get; set; } = "Новый"; 
         }
+
+        private ObservableCollection<OfferViewModel> _offers = new ObservableCollection<OfferViewModel>();
 
         public CloudAutoRestockView()
         {
             InitializeComponent();
-            Loaded += async (s, e) => await LoadData();
+            LogList.ItemsSource = Logs;
+            ListOffers.ItemsSource = _offers;
+            
+            Loaded += async (s, e) => { 
+                LoadLocalConfig(); 
+                await SyncWithServer(); 
+            };
         }
 
-        private async System.Threading.Tasks.Task LoadData()
+        public void SetSharedLog(ObservableCollection<FPBooster.MainWindow.LogEntry> shared)
+        {
+            Logs = shared;
+            LogList.ItemsSource = Logs;
+        }
+
+        private void OnImportClick(object sender, RoutedEventArgs e)
+        {
+            try 
+            { 
+                var mainWindow = Application.Current.MainWindow; 
+                if (mainWindow == null) return; 
+                var type = mainWindow.GetType(); 
+                var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance; 
+                
+                var fieldGk = type.GetField("GoldenKeyInput", flags); 
+                if (fieldGk?.GetValue(mainWindow) is TextBox tb && !string.IsNullOrWhiteSpace(tb.Text)) 
+                    InputKey.Password = tb.Text.Trim(); 
+                
+                var fieldNodes = type.GetField("NodeList", flags); 
+                if (fieldNodes?.GetValue(mainWindow) is ListBox lb) 
+                { 
+                    var items = lb.Items.Cast<object>().Select(x => x.ToString()).Where(s => !string.IsNullOrWhiteSpace(s)); 
+                    InputNodes.Text = string.Join("\n", items); 
+                }
+                Log("Restock: Данные импортированы", Brushes.Cyan);
+            } 
+            catch { Log("Restock: Ошибка импорта", Brushes.Red); }
+        }
+
+        private async void OnLoadOffersClick(object sender, RoutedEventArgs e)
+        {
+            var key = InputKey.Password;
+            var nodes = InputNodes.Text.Split(new[]{'\n','\r'}, StringSplitOptions.RemoveEmptyEntries).ToList();
+
+            if (string.IsNullOrEmpty(key) || !nodes.Any()) {
+                Log("Restock: Введите Golden Key и Node ID", Brushes.Orange);
+                return;
+            }
+
+            BtnLoadOffers.IsEnabled = false;
+            Log("Restock: Анализ лотов...", Brushes.Gray);
+
+            try {
+                var result = await CloudApiClient.Instance.FetchRestockOffersAsync(key, nodes);
+                if (result != null && result.Success) {
+                    foreach (var f in result.Data) {
+                        if (f.Valid && !_offers.Any(o => o.OfferId == f.OfferId)) {
+                            _offers.Add(new OfferViewModel { NodeId = f.NodeId, OfferId = f.OfferId, Name = f.Name });
+                        }
+                    }
+                    Log($"Restock: Найдено {result.Data.Count} офферов", Brushes.LightGreen);
+                } else Log("Restock: Ошибка сервера", Brushes.Red);
+            } catch (Exception ex) { Log("Restock: " + ex.Message, Brushes.Red); }
+            finally { BtnLoadOffers.IsEnabled = true; }
+        }
+
+        private async void OnSaveClick(object sender, RoutedEventArgs e)
+        {
+            BtnSave.IsEnabled = false;
+            Log("Restock: Сохранение...", Brushes.Gray);
+
+            var list = _offers.Select(o => new CloudApiClient.LotRestockConfig {
+                NodeId = o.NodeId, OfferId = o.OfferId, Name = o.Name, MinQty = o.MinQty,
+                AddSecrets = o.KeysToAddRaw.Split(new[]{'\n','\r'}, StringSplitOptions.RemoveEmptyEntries).ToList()
+            }).ToList();
+
+            var res = await CloudApiClient.Instance.SaveAutoRestockAsync(InputKey.Password, SwitchActive.IsChecked == true, list);
+            if (res.Success) {
+                Log("Restock: ✅ Сохранено", Brushes.LightGreen);
+                foreach (var o in _offers) o.KeysToAddRaw = "";
+                await SyncWithServer();
+            } else Log("Restock: ❌ Ошибка: " + res.Message, Brushes.Red);
+
+            BtnSave.IsEnabled = true;
+        }
+
+        private async Task SyncWithServer()
         {
             var status = await CloudApiClient.Instance.GetAutoRestockStatusAsync();
-            if (status != null)
-            {
+            if (status != null) {
                 SwitchActive.IsChecked = status.Active;
-                TxtStatus.Text = "Статус: " + status.Message;
-                
-                _lots.Clear();
-                var viewList = new List<LotViewModel>();
-                
-                foreach(var l in status.Lots)
-                {
-                    var conf = new CloudApiClient.LotRestockConfig { NodeId = l.NodeId, MinQty = 0 }; 
-                    _lots.Add(conf);
-                    viewList.Add(new LotViewModel { NodeId = l.NodeId, KeysInfo = $"Ключей на сервере: {l.KeysInDb}" });
+                TxtStatus.Text = status.Message;
+                foreach (var s in status.Lots) {
+                    var existing = _offers.FirstOrDefault(x => x.OfferId == s.OfferId);
+                    if (existing != null) {
+                        existing.StatusInfo = $"В базе: {s.KeysInDb} шт.";
+                        existing.MinQty = s.MinQty;
+                    } else {
+                        _offers.Add(new OfferViewModel { NodeId = s.NodeId, OfferId = s.OfferId, Name = s.Name, MinQty = s.MinQty, StatusInfo = $"В базе: {s.KeysInDb} шт." });
+                    }
                 }
-                ListLots.ItemsSource = viewList;
             }
         }
 
-        private void OnAddLotClick(object sender, RoutedEventArgs e)
-        {
-            string nid = InputNodeId.Text.Trim();
-            if (!int.TryParse(InputLimit.Text, out int limit)) limit = 5;
-            var keys = InputKeys.Text.Split(new[]{'\n','\r'}, StringSplitOptions.RemoveEmptyEntries).ToList();
-
-            if (string.IsNullOrEmpty(nid)) return;
-
-            var newItem = new CloudApiClient.LotRestockConfig { NodeId = nid, MinQty = limit, AddSecrets = keys };
-            
-            var existing = _lots.FirstOrDefault(x => x.NodeId == nid);
-            if (existing != null) _lots.Remove(existing);
-            _lots.Add(newItem);
-
-            RefreshList();
-            InputKeys.Clear();
-            InputNodeId.Clear();
-        }
-
-        private void RefreshList()
-        {
-            var view = _lots.Select(x => new LotViewModel 
-            { 
-                NodeId = x.NodeId, 
-                MinQty = x.MinQty, 
-                KeysInfo = x.AddSecrets.Count > 0 ? $"Будет добавлено ключей: {x.AddSecrets.Count}" : "Без добавления ключей (обновление настроек)"
-            }).ToList();
-            ListLots.ItemsSource = view;
-        }
-
-        private void OnDeleteLotClick(object sender, RoutedEventArgs e)
-        {
-            // Явное приведение к WPF Button
-            if ((sender as Button)?.DataContext is LotViewModel vm)
-            {
-                var item = _lots.FirstOrDefault(x => x.NodeId == vm.NodeId);
-                if (item != null) _lots.Remove(item);
-                RefreshList();
-            }
-        }
-
-        private async void OnSaveServerClick(object sender, RoutedEventArgs e)
-        {
-            BtnSaveServer.IsEnabled = false;
-            var cfg = ConfigManager.Load();
-            
-            var res = await CloudApiClient.Instance.SaveAutoRestockAsync(cfg.GoldenKey, SwitchActive.IsChecked == true, _lots);
-            
-            if (res.Success) MessageBox.Show("Сохранено! Ключи отправлены на сервер.");
-            else MessageBox.Show("Ошибка: " + res.Message);
-            
-            foreach(var l in _lots) l.AddSecrets.Clear();
-            RefreshList();
-            
-            BtnSaveServer.IsEnabled = true;
-        }
-
-        private void OnBackClick(object sender, RoutedEventArgs e) => NavigateBack?.Invoke();
+        private void OnDeleteOfferClick(object sender, RoutedEventArgs e) { if ((sender as Button)?.DataContext is OfferViewModel vm) _offers.Remove(vm); }
+        private void LoadLocalConfig() { try { var c = ConfigManager.Load(); InputKey.Password = c.GoldenKey; } catch { } }
+        private void Log(string m, Brush c) => Logs.Insert(0, new FPBooster.MainWindow.LogEntry { Text = $"[{DateTime.Now:HH:mm}] {m}", Color = c });
+        private void OnClearLogClick(object s, RoutedEventArgs e) => Logs.Clear();
+        private void OnBackClick(object s, RoutedEventArgs e) => NavigateBack?.Invoke();
     }
 }
