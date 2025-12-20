@@ -8,190 +8,159 @@
              Background="Transparent">
 
     <UserControl.Resources>
-        <Style x:Key="PluginCard" TargetType="Border">
+        <Style x:Key="GlowingCard" TargetType="Border">
             <Setter Property="CornerRadius" Value="16"/>
             <Setter Property="Padding" Value="20"/>
-            <Setter Property="Background" Value="{DynamicResource BrushPanel}"/>
+            <Setter Property="Background" Value="#660A0A10"/> 
             <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Color="#44000000" Direction="270"/>
+                    <DropShadowEffect BlurRadius="35" ShadowDepth="0" Opacity="0.5" 
+                                      Color="{DynamicResource ColorAccentDeep}"/>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <Style x:Key="PluginWatermarkTextBox" TargetType="TextBox">
-            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
-            <Setter Property="Background" Value="{DynamicResource BrushPanelAlt}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Grid>
-                            <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
-                                <ScrollViewer x:Name="PART_ContentHost"/>
-                            </Border>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrushPanel}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="PluginPrimaryButton" TargetType="Button">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="{DynamicResource BrushAccentDeep}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+        <Style x:Key="PluginHeader" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushAccentLight}"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,2"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="B" Property="Opacity" Value="0.9"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="B" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98" CenterX="100" CenterY="20"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="B" Property="Opacity" Value="0.5"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
 
-        <Style x:Key="PluginSecondaryButton" TargetType="Button" BasedOn="{StaticResource PluginPrimaryButton}">
-            <Setter Property="Background" Value="#33FFFFFF"/>
-            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontWeight" Value="Black"/>
         </Style>
 
-        <Style x:Key="TransparentListBox" TargetType="ListBox">
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource BrushSubText}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <Style x:Key="ModernListBox" TargetType="ListBox">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
             <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
         </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="600" />
-            <ColumnDefinition Width="*" MinWidth="675" />
+            <ColumnDefinition Width="400"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Style="{StaticResource PluginCard}" Margin="10,10,5,10">
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Hidden" Margin="0,0,15,0">
             <StackPanel>
-                <DockPanel Margin="0,0,0,20" LastChildFill="False">
-                    <TextBlock Text="⚡ Авто-поднятие (Local)" Foreground="{DynamicResource BrushAccentLight}" FontSize="20" FontWeight="Black" DockPanel.Dock="Left">
-                        <TextBlock.Effect>
-                            <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" ShadowDepth="0" Opacity="0.3"/>
-                        </TextBlock.Effect>
-                    </TextBlock>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                        <TextBlock Text="Статус:" Foreground="{DynamicResource BrushSubText}" FontSize="12" Margin="0,0,6,0"/>
-                        <TextBlock x:Name="StatusText" Text="ГОТОВ" Foreground="#9CF2B2" FontSize="12" FontWeight="Bold"/>
-                    </StackPanel>
-                </DockPanel>
-
-                <Border Background="{DynamicResource BrushPanelAlt}" CornerRadius="10" Padding="15" Margin="0,0,0,20" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                
+                <Border Style="{StaticResource GlowingCard}">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
+                        
                         <StackPanel Grid.Column="0" HorizontalAlignment="Center">
-                            <TextBlock Text="Попыток" FontSize="11" Foreground="{DynamicResource BrushSubText}" HorizontalAlignment="Center"/>
-                            <TextBlock x:Name="TxtTotal" Text="0" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource BrushText}" HorizontalAlignment="Center"/>
+                            <TextBlock Text="🔄" HorizontalAlignment="Center" FontSize="20" Margin="0,0,0,5"/>
+                            <TextBlock x:Name="TxtTotal" Text="0" Style="{StaticResource StatValue}" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Попыток" Style="{StaticResource StatLabel}" HorizontalAlignment="Center"/>
                         </StackPanel>
-                        <Border Grid.Column="1" Width="1" Background="{DynamicResource BrushBorder}" Margin="10,2"/>
+
+                        <Border Grid.Column="1" Width="1" Background="{DynamicResource BrushBorder}" Margin="10,5"/>
+
                         <StackPanel Grid.Column="2" HorizontalAlignment="Center">
-                            <TextBlock Text="Успешно" FontSize="11" Foreground="{DynamicResource BrushSubText}" HorizontalAlignment="Center"/>
-                            <TextBlock x:Name="TxtSuccess" Text="0" FontSize="18" FontWeight="Bold" Foreground="#9CF2B2" HorizontalAlignment="Center"/>
+                            <TextBlock Text="✅" HorizontalAlignment="Center" FontSize="20" Margin="0,0,0,5"/>
+                            <TextBlock x:Name="TxtSuccess" Text="0" Style="{StaticResource StatValue}" HorizontalAlignment="Center" Foreground="{DynamicResource BrushAccentLight}"/>
+                            <TextBlock Text="Поднято" Style="{StaticResource StatLabel}" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <TextBlock Text="Настройки интервалов" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource BrushText}" Margin="0,0,0,8"/>
-                <Grid Margin="0,0,0,20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="15"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0">
-                        <TextBlock Text="Интервал (часы)" FontSize="11" Foreground="{DynamicResource BrushSubText}" Margin="0,0,0,4"/>
-                        <TextBox x:Name="IntervalInput" Text="4" Style="{StaticResource PluginWatermarkTextBox}" TextAlignment="Center"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Разброс (минуты)" FontSize="11" Foreground="{DynamicResource BrushSubText}" Margin="0,0,0,4"/>
-                        <TextBox x:Name="JitterInput" Text="15" Style="{StaticResource PluginWatermarkTextBox}" TextAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
+                <Border Style="{StaticResource GlowingCard}">
+                    <StackPanel>
+                        <TextBlock Text="НАСТРОЙКИ ПОДНЯТИЯ" Style="{StaticResource PluginHeader}"/>
+                        
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Интервал (часов)" Foreground="{DynamicResource BrushSubText}" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox x:Name="IntervalInput" Text="4" Style="{StaticResource WatermarkTextBox}" TextAlignment="Center"/>
+                            </StackPanel>
+                            
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Разброс (мин)" Foreground="{DynamicResource BrushSubText}" FontSize="11" Margin="0,0,0,4"/>
+                                <TextBox x:Name="JitterInput" Text="15" Style="{StaticResource WatermarkTextBox}" TextAlignment="Center" ToolTip="Случайная задержка +/- минут"/>
+                            </StackPanel>
+                        </Grid>
 
-                <Expander Header="⚙ Дополнительно" Foreground="{DynamicResource BrushSubText}" Margin="0,0,0,20">
-                    <StackPanel Margin="0,10,0,0">
-                        <TextBlock Text="Список NodeID (только для чтения)" FontSize="11" Foreground="{DynamicResource BrushSubText}" Margin="0,0,0,4"/>
-                        <TextBox x:Name="NodesPreview" Style="{StaticResource PluginWatermarkTextBox}" Height="60" TextWrapping="Wrap" IsReadOnly="True" Opacity="0.7"/>
-                    </StackPanel>
-                </Expander>
+                        <Border Background="#22000000" CornerRadius="8" Padding="12" Margin="0,0,0,15">
+                            <DockPanel>
+                                <TextBlock Text="Статус:" Foreground="{DynamicResource BrushSubText}"/>
+                                <TextBlock x:Name="StatusText" Text="ГОТОВ" FontWeight="Bold" HorizontalAlignment="Right" Foreground="White">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect x:Name="StatusGlow" BlurRadius="8" Color="White" Opacity="0"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                            </DockPanel>
+                        </Border>
 
-                <Grid Margin="0,10,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="BtnQuick" Grid.Column="0" Content="⚡ Разовая проверка" Height="45" Click="OnQuickCheckClick" Style="{StaticResource PluginSecondaryButton}"/>
-                    <Button x:Name="BtnToggle" Grid.Column="2" Content="▶ ЗАПУСТИТЬ ЦИКЛ" Height="45" Click="OnToggleBumpClick" Style="{StaticResource PluginPrimaryButton}"/>
-                </Grid>
+                        <Button x:Name="BtnStart" Content="▶ ЗАПУСТИТЬ АВТО" Click="OnStartAutoClick" Style="{StaticResource PrimaryButton}" Height="42" Margin="0,0,0,8"/>
+                        <Button x:Name="BtnStop" Content="⏹ ОСТАНОВИТЬ" Click="OnStopAutoClick" Style="{StaticResource SecondaryButton}" Height="42" Visibility="Collapsed" Margin="0,0,0,8"/>
+                        
+                        <Button Content="⚡ ПОДНЯТЬ СЕЙЧАС (1 КРУГ)" Click="OnQuickBumpClick" Style="{StaticResource SecondaryButton}" Height="34"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource GlowingCard}" BorderBrush="{DynamicResource BrushAccentDeep}" BorderThickness="1">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,10">
+                            <TextBlock Text="🍃 ECO MODE" Style="{StaticResource PluginHeader}" Foreground="#9CF2B2" VerticalAlignment="Center" Margin="0"/>
+                        </DockPanel>
+                        <TextBlock Text="Сверните программу в трей для максимальной производительности." 
+                                   Foreground="{DynamicResource BrushSubText}" TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12"/>
+                        <Button Content="Включить Eco Mode" Click="OnEcoModeFromPlugin" 
+                                Style="{StaticResource SecondaryButton}" 
+                                BorderBrush="#449CF2B2" Foreground="#9CF2B2" Background="#119CF2B2"/>
+                    </StackPanel>
+                </Border>
             </StackPanel>
-        </Border>
+        </ScrollViewer>
 
-        <Border Grid.Column="1" Style="{StaticResource PluginCard}" Margin="5,10,10,10">
+        <Border Grid.Column="1" Style="{StaticResource GlowingCard}" Padding="10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
+                
                 <DockPanel Grid.Row="0" Margin="0,0,0,10" LastChildFill="False">
-                    <TextBlock Text="Журнал операций" Foreground="{DynamicResource BrushText}" FontWeight="SemiBold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                    <Button Content="Очистить" Width="80" Height="26" DockPanel.Dock="Right" Click="OnClearPluginLog" Style="{StaticResource PluginSecondaryButton}" FontSize="11"/>
+                    <TextBlock Text="ЖУРНАЛ ОПЕРАЦИЙ" Style="{StaticResource PluginHeader}" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                    <Button Content="Очистить" Width="80" Height="24" DockPanel.Dock="Right" Click="OnClearPluginLog" Style="{StaticResource SecondaryButton}" FontSize="11"/>
                 </DockPanel>
+                
                 <Border Grid.Row="1" Height="1" Background="{DynamicResource BrushBorder}" Margin="0,0,0,10" Opacity="0.5"/>
-                <Border Grid.Row="2" Background="#11000000" CornerRadius="8">
-                    <ListBox x:Name="PluginLog" Style="{StaticResource TransparentListBox}" Padding="4">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" TextWrapping="Wrap" FontSize="11" Margin="0,2"/>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Border>
+                
+                <ListBox Grid.Row="2" x:Name="PluginLog" Style="{StaticResource ModernListBox}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" TextWrapping="Wrap" FontSize="12" FontFamily="Consolas" Margin="0,2"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Grid>
         </Border>
     </Grid>

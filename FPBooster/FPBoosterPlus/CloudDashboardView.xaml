@@ -4,115 +4,242 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="700" d:DesignWidth="1200"
+             d:DesignHeight="750" d:DesignWidth="1200"
              Background="Transparent">
 
     <UserControl.Resources>
-        <Style x:Key="PluginPrimaryButton" TargetType="Button">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="#6A4C93"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,2"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="B" Property="Opacity" Value="0.9"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="PluginSecondaryButton" TargetType="Button" BasedOn="{StaticResource PluginPrimaryButton}">
-            <Setter Property="Background" Value="#33FFFFFF"/>
-            <Setter Property="Foreground" Value="#DDD"/>
-        </Style>
-
-        <Style x:Key="MenuCard" TargetType="Button">
-            <Setter Property="Background" Value="#25202B"/>
-            <Setter Property="BorderBrush" Value="#443355"/>
+        <Style x:Key="CloudModuleCard" TargetType="Button">
+            <Setter Property="Background" Value="#22151520"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Height" Value="160"/>
+            <Setter Property="Width" Value="340"/>
+            <Setter Property="Height" Value="210"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="15"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bd" Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="16">
-                            <Grid Margin="20">
+                        <Border x:Name="bd" BorderThickness="1" CornerRadius="24">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#15FFFFFF" Offset="0"/>
+                                    <GradientStop Color="#05FFFFFF" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#33FFFFFF" Offset="0"/>
+                                    <GradientStop Color="#11FFFFFF" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                            <Border.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="10" Opacity="0.25"/>
+                            </Border.Effect>
+                            
+                            <Grid Margin="25">
+                                <TextBlock Text="☁" FontSize="80" Foreground="White" Opacity="0.03" 
+                                           HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-20,-20,0"/>
+                                
                                 <StackPanel VerticalAlignment="Bottom">
-                                    <TextBlock Text="{TemplateBinding Tag}" Foreground="White" FontWeight="Bold" FontSize="16"/>
-                                    <TextBlock Text="{TemplateBinding Content}" Foreground="#888" FontSize="12" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                                    <TextBlock Text="{TemplateBinding Tag}" Foreground="{DynamicResource BrushAccentLight}" 
+                                               FontWeight="Bold" FontSize="20">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" Opacity="0.4" ShadowDepth="0"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
+                                    <TextBlock Text="{TemplateBinding Content}" Foreground="{DynamicResource BrushSubText}" 
+                                               FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0" LineHeight="20" Opacity="0.8"/>
                                 </StackPanel>
-                                <TextBlock Text="☁" FontSize="32" Foreground="#33FFFFFF" HorizontalAlignment="Right" VerticalAlignment="Top"/>
+                                
+                                <Ellipse Width="8" Height="8" Fill="{DynamicResource BrushAccentLight}" 
+                                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.5"/>
                             </Grid>
                         </Border>
+                        
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#2D2636"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="#9B4BFF"/>
+                                <Setter TargetName="bd" Property="Background" Value="#332D1B4E"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="30" ShadowDepth="0" Opacity="0.4"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.4"/>
+                                <Setter TargetName="bd" Property="Effect" Value="{x:Null}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="MouseEnter">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.02" Duration="0:0:0.2"/>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.02" Duration="0:0:0.2"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="MouseLeave">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.2"/>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.2"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="25">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <DockPanel Grid.Row="0" Margin="0,0,0,30">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
-                <TextBlock Text="FPBooster" FontSize="32" FontWeight="Black" Foreground="White"/>
-                <TextBlock Text="PLUS" FontSize="32" FontWeight="Light" Foreground="#D6BCFA" Margin="10,0,0,0"/>
-            </StackPanel>
-            <Border DockPanel.Dock="Right" Background="#33FFFFFF" CornerRadius="20" Padding="15,5" VerticalAlignment="Center">
-                <TextBlock x:Name="ServerStatusText" Text="🟢 Сервер онлайн" Foreground="White" FontWeight="SemiBold" FontSize="12"/>
-            </Border>
-        </DockPanel>
-
-        <Border Grid.Row="1" Background="#1A1A20" CornerRadius="16" Padding="25" Margin="0,0,0,30">
-            <DockPanel>
-                <StackPanel>
-                    <TextBlock Text="DASHBOARD" Foreground="#AAA" FontSize="12" FontWeight="Bold"/>
-                    <TextBlock Text="Панель управления сервером" Foreground="White" FontSize="18" FontWeight="SemiBold" Margin="0,5,0,0"/>
-                </StackPanel>
-            </DockPanel>
+    <Grid>
+        <Border>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                    <GradientStop Color="#0E0E12" Offset="0"/>
+                    <GradientStop Color="#14101A" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid>
+                <Border VerticalAlignment="Bottom" Height="300" Opacity="0.15">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0.5,1" EndPoint="0.5,0">
+                            <GradientStop Color="{DynamicResource ColorAccentDeep}" Offset="0"/>
+                            <GradientStop Color="Transparent" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+            </Grid>
         </Border>
 
-        <Grid Grid.Row="2">
-            <TextBlock Text="МОДУЛИ" VerticalAlignment="Top" Foreground="#666" FontWeight="Bold" Margin="5,0,0,15"/>
-            
-            <UniformGrid Columns="3" Rows="2" Margin="0,30,0,0">
-                <Button Style="{StaticResource MenuCard}" 
-                        Tag="Auto Bump" 
-                        Content="Автоматическое поднятие лотов 24/7 без участия вашего ПК."
-                        Click="OpenAutoBump_Click" Margin="0,0,15,15"/>
+        <Grid Margin="40,30,40,30">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-                <Button Style="{StaticResource MenuCard}" 
-                        Tag="Auto Restock" 
-                        Content="Автовыдача товаров (Скоро)."
-                        IsEnabled="False" Opacity="0.5" Margin="0,0,15,15"/>
+            <DockPanel Grid.Row="0" Margin="0,0,0,35" LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock Text="FPBooster" FontSize="36" FontWeight="Black" Foreground="White">
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="White" BlurRadius="10" Opacity="0.2"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                    <TextBlock Text="PLUS" FontSize="36" FontWeight="Light" Margin="10,0,0,0">
+                        <TextBlock.Foreground>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="{DynamicResource ColorAccentLight}" Offset="0"/>
+                                <GradientStop Color="#FFFFFF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </TextBlock.Foreground>
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="20" Opacity="0.5" ShadowDepth="0"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                </StackPanel>
+                
+                <Border DockPanel.Dock="Right" Background="#10FFFFFF" CornerRadius="20" Padding="15,8" VerticalAlignment="Center" 
+                        BorderBrush="#22FFFFFF" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Grid Width="10" Height="10" Margin="0,0,10,0">
+                            <Ellipse Fill="#00FF99" Width="8" Height="8" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Ellipse x:Name="PulseDot" Fill="#00FF99" Width="8" Height="8" Opacity="0.6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Ellipse.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.8" To="0" Duration="0:0:1.5"/>
+                                                <DoubleAnimation Storyboard.TargetProperty="Width" From="8" To="20" Duration="0:0:1.5"/>
+                                                <DoubleAnimation Storyboard.TargetProperty="Height" From="8" To="20" Duration="0:0:1.5"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Ellipse.Triggers>
+                            </Ellipse>
+                        </Grid>
+                        <TextBlock x:Name="ServerStatusText" Text="Online" Foreground="White" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </DockPanel>
 
-                <Button Style="{StaticResource MenuCard}" 
-                        Tag="Analytics" 
-                        Content="Подробная статистика продаж (Скоро)."
-                        IsEnabled="False" Opacity="0.5" Margin="0,0,0,15"/>
-            </UniformGrid>
+            <Border Grid.Row="1" CornerRadius="24" Margin="0,0,0,40" Height="160">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#99101015" Offset="0"/>
+                        <GradientStop Color="{DynamicResource ColorAccentDeep}" Offset="1.5"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.BorderBrush>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#44FFFFFF" Offset="0"/>
+                        <GradientStop Color="Transparent" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.BorderBrush>
+                <Border.BorderThickness>1</Border.BorderThickness>
+                <Border.Effect>
+                    <DropShadowEffect Color="{DynamicResource ColorAccentDeep}" BlurRadius="50" Opacity="0.25" ShadowDepth="10"/>
+                </Border.Effect>
+
+                <Grid>
+                    <TextBlock Text="☁" FontSize="180" Foreground="White" Opacity="0.02" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-30,-50"/>
+
+                    <StackPanel VerticalAlignment="Center" Margin="40,0">
+                        <Border Background="#22FFFFFF" HorizontalAlignment="Left" CornerRadius="6" Padding="10,5" Margin="0,0,0,12">
+                            <TextBlock Text="DASHBOARD" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                        </Border>
+                        <TextBlock Text="Панель управления сервером" Foreground="White" FontSize="28" FontWeight="Bold"/>
+                        <TextBlock Text="Полный контроль над задачами 24/7. Ваш ПК может отдыхать." Foreground="#BBB" FontSize="15" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="ДОСТУПНЫЕ МОДУЛИ" Foreground="{DynamicResource BrushSubText}" FontWeight="Bold" Margin="5,0,0,15" Opacity="0.7"/>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
+                    <WrapPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        
+                        <Button Style="{StaticResource CloudModuleCard}" 
+                                Tag="Auto Bump Cloud" 
+                                Content="Автоматическое поднятие лотов на сервере. Работает автономно."
+                                Click="OpenAutoBump_Click">
+                            <Button.RenderTransform>
+                                <ScaleTransform/>
+                            </Button.RenderTransform>
+                        </Button>
+
+                        <Button Style="{StaticResource CloudModuleCard}" 
+                                Tag="Auto Restock Cloud" 
+                                Content="Автовыдача товаров. (Скоро)"
+                                IsEnabled="False">
+                            <Button.RenderTransform>
+                                <ScaleTransform/>
+                            </Button.RenderTransform>
+                        </Button>
+
+                        <Button Style="{StaticResource CloudModuleCard}" 
+                                Tag="Analytics Cloud" 
+                                Content="Глубокая аналитика продаж и графики. (Скоро)"
+                                IsEnabled="False">
+                            <Button.RenderTransform>
+                                <ScaleTransform/>
+                            </Button.RenderTransform>
+                        </Button>
+
+                    </WrapPanel>
+                </ScrollViewer>
+            </Grid>
         </Grid>
     </Grid>
 </UserControl>

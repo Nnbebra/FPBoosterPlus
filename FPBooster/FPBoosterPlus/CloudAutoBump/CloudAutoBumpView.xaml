@@ -1,0 +1,490 @@
+<UserControl x:Class="FPBooster.FPBoosterPlus.CloudAutoBumpView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignWidth="1200" d:DesignHeight="750"
+             Background="Transparent" FontFamily="Segoe UI">
+
+    <UserControl.Resources>
+        <Style x:Key="GlassPanel" TargetType="Border">
+            <Setter Property="Background" Value="#22151520"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.2"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="OverlayScrollBar" TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid>
+                            <Border Background="Transparent"/>
+                            <Track x:Name="PART_Track" IsDirectionReversed="true">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="ThumbBorder" Background="#33FFFFFF" CornerRadius="4" Width="6"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource BrushAccentLight}"/>
+                                                        <Setter TargetName="ThumbBorder" Property="Width" Value="8"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbBorder" Property="Background" Value="{DynamicResource BrushAccentDeep}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb> </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                       HorizontalAlignment="Right"
+                                       Style="{StaticResource OverlayScrollBar}"
+                                       Value="{TemplateBinding VerticalOffset}"
+                                       Maximum="{TemplateBinding ScrollableHeight}"
+                                       ViewportSize="{TemplateBinding ViewportHeight}"
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GlassTextBox" TargetType="TextBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#15FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="2"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#25FFFFFF"/>
+                                <Setter TargetName="Bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="15" Opacity="0.3" ShadowDepth="0"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GlassPasswordBox" TargetType="PasswordBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#15FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Consolas"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="2"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#25FFFFFF"/>
+                                <Setter TargetName="Bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="15" Opacity="0.3" ShadowDepth="0"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GlassIconButton" TargetType="Button">
+            <Setter Property="Background" Value="#10FFFFFF"/>
+            <Setter Property="Foreground" Value="#DDD"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Width" Value="42"/>
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" CornerRadius="21" Background="{TemplateBinding Background}" BorderBrush="#33FFFFFF" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" UseLayoutRounding="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="Background" Value="#33FFFFFF"/>
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="B" Property="Opacity" Value="0.8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <EventTrigger RoutedEvent="PreviewMouseDown">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="0.9" Duration="0:0:0.05"/>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="0.9" Duration="0:0:0.05"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+                <EventTrigger RoutedEvent="PreviewMouseUp">
+                    <BeginStoryboard>
+                        <Storyboard>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.1"/>
+                            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.1"/>
+                        </Storyboard>
+                    </BeginStoryboard>
+                </EventTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GlassSecondaryButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#DDD"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" CornerRadius="6" Background="#15FFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1" Padding="12,6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="Background" Value="#25FFFFFF"/>
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GlassPrimaryButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="B" CornerRadius="10">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="{DynamicResource ColorAccentDeep}" Offset="0"/>
+                                    <GradientStop Color="{DynamicResource ColorAccentLight}" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15,10"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="Opacity" Value="0.9"/>
+                                <Setter TargetName="B" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="15" Opacity="0.5" ShadowDepth="0"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                                <Setter TargetName="B" Property="Effect" Value="{x:Null}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AnimatedSwitch" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Width="60" Height="32" Background="Transparent">
+                            <Border x:Name="Track" CornerRadius="16" Background="#44000000" BorderBrush="#55FFFFFF" BorderThickness="2"/>
+                            <Ellipse x:Name="Thumb" Width="24" Height="24" Fill="White" HorizontalAlignment="Left" Margin="4,0,0,0" VerticalAlignment="Center">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform X="0" Y="0"/>
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <EventTrigger RoutedEvent="Checked">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                         To="28" Duration="0:0:0.2" DecelerationRatio="0.5"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="{StaticResource ColorAccentLight}" Duration="0:0:0.2"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                        To="{StaticResource ColorAccentLight}" Duration="0:0:0.2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="Unchecked">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                         To="0" Duration="0:0:0.2" DecelerationRatio="0.5"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#44000000" Duration="0:0:0.2"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                        To="#55FFFFFF" Duration="0:0:0.2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <ThicknessAnimation Storyboard.TargetProperty="Margin" From="0,40,0,0" To="0" Duration="0:0:0.4" DecelerationRatio="0.5"/>
+                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.4"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+
+    <Grid Margin="40,30,40,30">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> 
+            <RowDefinition Height="Auto"/> 
+            <RowDefinition Height="*"/>    
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,30" LastChildFill="False">
+            <Button Click="OnBackClick" Style="{StaticResource GlassIconButton}" DockPanel.Dock="Left" VerticalAlignment="Center">
+                <Path Data="M 10,2 L 2,10 L 10,18" 
+                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" 
+                      StrokeThickness="2.5" 
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                      Width="12" Height="20" Stretch="Uniform"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Margin="-2,0,0,0"/>
+            </Button>
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="20,0,0,0">
+                <TextBlock Text="☁️" FontSize="28" Margin="0,0,12,0" VerticalAlignment="Center">
+                     <TextBlock.Effect><DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="15" Opacity="0.6"/></TextBlock.Effect>
+                </TextBlock>
+                <TextBlock Text="AutoBump Cloud" FontSize="26" FontWeight="Bold" VerticalAlignment="Center">
+                    <TextBlock.Foreground>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="{DynamicResource ColorAccentLight}" Offset="0"/>
+                            <GradientStop Color="White" Offset="1"/>
+                        </LinearGradientBrush>
+                    </TextBlock.Foreground>
+                </TextBlock>
+            </StackPanel>
+        </DockPanel>
+
+        <UniformGrid Grid.Row="1" Columns="3" Rows="1" Margin="0,0,0,30">
+            <Border Style="{StaticResource GlassPanel}" Margin="0,0,20,0" Padding="20">
+                <DockPanel>
+                    <TextBlock x:Name="StatusIcon" Text="⏹" FontSize="32" Foreground="Orange" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,15,0" Opacity="0.9"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="СТАТУС СЕРВЕРА" Foreground="{DynamicResource BrushSubText}" FontSize="11" FontWeight="Bold" Opacity="0.7"/>
+                        <TextBlock x:Name="TxtStatus" Text="Остановлено" Foreground="Orange" FontSize="20" FontWeight="Bold" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+            
+            <Border Style="{StaticResource GlassPanel}" Margin="0,0,20,0" Padding="15">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Text="⏱️" FontSize="32" VerticalAlignment="Center" Margin="0,0,15,0" Opacity="0.8"/>
+                    
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <DockPanel>
+                            <TextBlock Text="СЛЕДУЮЩИЙ ЗАПУСК" Foreground="{DynamicResource BrushSubText}" FontSize="10" FontWeight="Bold" Opacity="0.7" DockPanel.Dock="Top"/>
+                            <TextBlock x:Name="TxtNextRun" Text="—" Foreground="White" FontSize="18" FontWeight="Bold" Margin="0,2,0,5"/>
+                        </DockPanel>
+                        
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                            <Button x:Name="BtnInfo" Style="{StaticResource GlassSecondaryButton}" Width="32" Height="32" Padding="0" Margin="0,0,8,0" 
+                                    Click="OnInfoClick" ToolTip="Информация о лимитах">
+                                <TextBlock Text="ℹ️" FontSize="16" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Button>
+
+                            <Button x:Name="BtnRefresh" Click="OnRefreshClick" Style="{StaticResource GlassSecondaryButton}" Padding="10,4" Height="32">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="RefreshIcon" Text="↻" FontSize="14" Margin="0,0,6,0" RenderTransformOrigin="0.5,0.5"/>
+                                    <TextBlock x:Name="TxtRefresh" Text="Обновить" FontSize="12" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource GlassPanel}" Padding="20">
+                <DockPanel>
+                    <TextBlock Text="📦" FontSize="32" DockPanel.Dock="Left" VerticalAlignment="Center" Margin="0,0,15,0" Opacity="0.8"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="ЛОТОВ В РАБОТЕ" Foreground="{DynamicResource BrushSubText}" FontSize="11" FontWeight="Bold" Opacity="0.7"/>
+                        <TextBlock x:Name="TxtLotsCount" Text="0 шт." Foreground="White" FontSize="20" FontWeight="Bold" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+        </UniformGrid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="480"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Margin="0,0,30,0">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,0,16,0"> 
+                        
+                        <Border CornerRadius="16" BorderThickness="1" Margin="0,0,0,25" Padding="25">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#332D1B4E" Offset="0"/>
+                                    <GradientStop Color="#22151520" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.BorderBrush>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="{DynamicResource ColorAccentLight}" Offset="0"/>
+                                    <GradientStop Color="#33FFFFFF" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.BorderBrush>
+                            <Border.Effect>
+                                <DropShadowEffect x:Name="PowerCardGlow" Color="{DynamicResource ColorAccentLight}" BlurRadius="30" ShadowDepth="0" Opacity="0.1"/>
+                            </Border.Effect>
+                            
+                            <DockPanel>
+                                <StackPanel VerticalAlignment="Center">
+                                     <TextBlock x:Name="ActiveStatusText" Text="СЕРВЕР ОСТАНОВЛЕН" Foreground="Gray" FontSize="16" FontWeight="Black"/>
+                                     <TextBlock Text="Переключите для запуска" Foreground="{DynamicResource BrushSubText}" FontSize="13" Margin="0,5,0,0" Opacity="0.8"/>
+                                </StackPanel>
+                                <CheckBox x:Name="SwitchActive" Style="{StaticResource AnimatedSwitch}" DockPanel.Dock="Right" VerticalAlignment="Center"
+                                          Checked="OnSwitchToggled" Unchecked="OnSwitchToggled"/>
+                            </DockPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource GlassPanel}" Padding="25">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,10" LastChildFill="False">
+                                    <TextBlock Text="СПИСОК ЛОТОВ (NODE ID)" Foreground="{DynamicResource BrushSubText}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Opacity="0.8"/>
+                                    <Button Click="OnImportNodesClick" Style="{StaticResource GlassSecondaryButton}" DockPanel.Dock="Right" Padding="8,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="📥" Margin="0,0,5,0" FontSize="11"/>
+                                            <TextBlock Text="Импорт" FontSize="11"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DockPanel>
+                                <TextBox x:Name="InputNodes" Style="{StaticResource GlassTextBox}" MinHeight="110" TextWrapping="Wrap" AcceptsReturn="True" 
+                                         Tag="Вставьте ID лотов..." VerticalContentAlignment="Top" Margin="0,0,0,20"/>
+                                
+                                <DockPanel Margin="0,0,0,10" LastChildFill="False">
+                                    <TextBlock Text="GOLDEN KEY" Foreground="{DynamicResource BrushSubText}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Opacity="0.8"/>
+                                    <Button Click="OnImportKeyClick" Style="{StaticResource GlassSecondaryButton}" DockPanel.Dock="Right" Padding="8,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🔑" Margin="0,0,5,0" FontSize="11"/>
+                                            <TextBlock Text="Импорт" FontSize="11"/>
+                                        </StackPanel>
+                                    </Button>
+                                </DockPanel>
+                                <PasswordBox x:Name="InputKey" Style="{StaticResource GlassPasswordBox}" Opacity="0.8" FontFamily="Consolas" Height="40"/>
+                                
+                                <Button x:Name="BtnSave" Content="💾 СОХРАНИТЬ НА СЕРВЕРЕ" 
+                                        Style="{StaticResource GlassPrimaryButton}" Height="46" Click="OnSaveClick" Margin="0,25,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource GlassPanel}" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <DockPanel Grid.Row="0" Margin="0,0,0,15" LastChildFill="False">
+                        <TextBlock Text="ЖУРНАЛ СЕРВЕРА" Foreground="{DynamicResource BrushSubText}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Button Content="Очистить" Click="OnClearLogClick" Style="{StaticResource GlassSecondaryButton}" DockPanel.Dock="Right" Padding="8,4" FontSize="11"/>
+                    </DockPanel>
+                    
+                    <Border Grid.Row="1" Background="#15FFFFFF" CornerRadius="8" BorderBrush="#22FFFFFF" BorderThickness="1">
+                        <ListBox x:Name="LogList" Background="Transparent" BorderThickness="0" Foreground="#DDD" Padding="10"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12" Margin="0,3"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

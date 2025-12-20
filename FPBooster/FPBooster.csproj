@@ -11,7 +11,8 @@
     
     <ImplicitUsings>enable</ImplicitUsings>
     <StartupObject>FPBooster.Program</StartupObject>
-  </PropertyGroup>
+    
+    </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Costura.Fody" Version="5.7.0">
@@ -27,7 +28,8 @@
     <Resource Include="UI\Resources\**\*.png" />
     <Resource Include="UI\Resources\**\*.jpg" />
     <Resource Include="UI\Resources\**\*.gif" />
-    <Resource Include="UI\Resources\**\*.ico" />
+    <Resource Include="UI\Resources\icon.ico" /> 
+    
   </ItemGroup>
 
 </Project>

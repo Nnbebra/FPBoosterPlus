@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -38,12 +39,12 @@ namespace FPBooster.Plugins
 
             var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(30) };
             client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
-            client.DefaultRequestHeaders.Add("Accept-Language", "ru,en;q=0.9");
             client.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
 
             return client;
         }
 
+        // Вспомогательный метод для получения HTML
         private async Task<string> GetTradeHtmlAsync(string nodeId)
         {
             var url = $"{BaseUrl}/lots/{nodeId}/trade";
@@ -55,40 +56,26 @@ namespace FPBooster.Plugins
             return await response.Content.ReadAsStringAsync();
         }
 
-        public async Task<string?> FetchCsrfTokenAsync(string nodeId)
+        // --- УЛУЧШЕННЫЙ МЕТОД ПОЛУЧЕНИЯ ИНФО (Возвращает RetryAfter) ---
+        public async Task<(string? Csrf, string? GameId, string Error, TimeSpan? RetryAfter)> GetLotInfoAsync(string nodeId)
         {
             try
             {
                 var html = await GetTradeHtmlAsync(nodeId);
-                var m = Regex.Match(html, @"data-app-data=""([^""]+)""");
-                if (m.Success)
-                {
-                    var blob = WebUtility.HtmlDecode(m.Groups[1].Value);
-                    var t = Regex.Match(blob, @"""csrf-token""\s*:\s*""([^""]+)""");
-                    if (t.Success) return t.Groups[1].Value;
-                    t = Regex.Match(blob, @"""csrfToken""\s*:\s*""([^""]+)""");
-                    if (t.Success) return t.Groups[1].Value;
-                }
                 
-                m = Regex.Match(html, @"name=[""']csrf_token[""'][^>]+value=[""']([^""']+)[""']");
-                if (m.Success) return m.Groups[1].Value;
-
-                return null;
-            }
-            catch { return null; }
-        }
-
-        public async Task<(string? Csrf, string? GameId, string Error)> GetLotInfoAsync(string nodeId)
-        {
-            try
-            {
-                var html = await GetTradeHtmlAsync(nodeId);
-                if (html.Contains("Подождите"))
+                // Проверка на таймер (Подождите X ч. Y мин.)
+                if (html.Contains("Подождите") || html.Contains("wait"))
                 {
+                    // Ищем блок с ошибкой
                     var mWait = Regex.Match(html, @"class=""[^""]*ajax-alert-danger""[^>]*>(.*?)</div>", RegexOptions.Singleline);
-                    if (mWait.Success) return (null, null, $"Таймер: {mWait.Groups[1].Value.Trim()}");
+                    string errorText = mWait.Success ? mWait.Groups[1].Value.Trim() : "Таймер (неизвестное время)";
+                    
+                    // Парсим время из текста
+                    TimeSpan? waitTime = ParseWaitTime(errorText);
+                    return (null, null, errorText, waitTime);
                 }
 
+                // Поиск CSRF и GameID (как раньше)
                 string? csrf = null;
                 var m = Regex.Match(html, @"data-app-data=""([^""]+)""");
                 if (m.Success)
@@ -118,12 +105,16 @@ namespace FPBooster.Plugins
                     }
                 }
 
-                return (csrf, gameId, string.Empty);
+                return (csrf, gameId, string.Empty, null);
             }
-            catch (Exception ex) { return (null, null, $"Ошибка: {ex.Message}"); }
+            catch (Exception ex) 
+            { 
+                return (null, null, $"Ошибка доступа: {ex.Message}", null); 
+            }
         }
 
-        public async Task<(bool Success, string Message)> BumpLotPostAsync(string nodeId, string gameId, string csrfToken)
+        // Логика POST запроса на поднятие
+        public async Task<(bool Success, string Message, TimeSpan? RetryAfter)> BumpLotPostAsync(string nodeId, string gameId, string csrfToken)
         {
             try
             {
@@ -135,28 +126,68 @@ namespace FPBooster.Plugins
                 request.Headers.Referrer = new Uri($"https://funpay.com/lots/{nodeId}/trade");
                 request.Headers.Add("X-Requested-With", "XMLHttpRequest");
                 if (!string.IsNullOrEmpty(csrfToken)) request.Headers.Add("X-CSRF-Token", csrfToken);
+                
                 request.Content = new FormUrlEncodedContent(data);
 
                 var response = await _client.SendAsync(request);
                 var responseText = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode) return (false, $"HTTP {response.StatusCode}");
+                if (!response.IsSuccessStatusCode) return (false, $"HTTP {response.StatusCode}", null);
 
                 try
                 {
-                    using var jsonDoc = System.Text.Json.JsonDocument.Parse(responseText);
+                    using var jsonDoc = JsonDocument.Parse(responseText);
                     var root = jsonDoc.RootElement;
                     if (root.TryGetProperty("msg", out var msgProp))
                     {
                         var msg = msgProp.GetString();
-                        bool isError = root.TryGetProperty("error", out var errProp) && errProp.GetInt32() == 1;
-                        return (!isError, msg ?? "Ответ сервера пуст");
+                        bool isError = false;
+                        
+                        if (root.TryGetProperty("error", out var errProp))
+                        {
+                            if (errProp.ValueKind == JsonValueKind.Number)
+                                isError = errProp.GetInt32() == 1;
+                            else if (errProp.ValueKind == JsonValueKind.True || errProp.ValueKind == JsonValueKind.False)
+                                isError = errProp.GetBoolean();
+                        }
+
+                        // Если есть ошибка "Подождите", парсим время
+                        if (isError && !string.IsNullOrEmpty(msg) && (msg.Contains("Подождите") || msg.Contains("wait")))
+                        {
+                            return (false, msg, ParseWaitTime(msg));
+                        }
+                        
+                        return (!isError, msg ?? "Пустой ответ", null);
                     }
                 }
                 catch { }
-                return (false, "Неизвестный ответ");
+                
+                return (false, "Неизвестный ответ сервера", null);
             }
-            catch (Exception ex) { return (false, $"Сбой POST: {ex.Message}"); }
+            catch (Exception ex) 
+            { 
+                return (false, $"Ошибка POST: {ex.Message}", null); 
+            }
+        }
+
+        // --- НОВЫЙ МЕТОД: Парсинг времени из текста ---
+        private TimeSpan? ParseWaitTime(string text)
+        {
+            try
+            {
+                // Ищем "3 ч." или "1 час"
+                var matchHours = Regex.Match(text, @"(\d+)\s*(ч|h|час)");
+                // Ищем "45 мин."
+                var matchMinutes = Regex.Match(text, @"(\d+)\s*(м|min|мин)");
+
+                int hours = matchHours.Success ? int.Parse(matchHours.Groups[1].Value) : 0;
+                int minutes = matchMinutes.Success ? int.Parse(matchMinutes.Groups[1].Value) : 0;
+
+                if (hours > 0 || minutes > 0)
+                    return TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(minutes);
+            }
+            catch { }
+            return null;
         }
     }
 }

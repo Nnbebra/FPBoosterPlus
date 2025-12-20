@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
+using System.Text; 
+using System.Text.Json; 
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Diagnostics;
@@ -16,42 +16,42 @@ namespace FPBooster.ServerApi
         private static CloudApiClient? _instance;
         public static CloudApiClient Instance => _instance ??= new CloudApiClient();
 
+        // 🛑 ПРОВЕРЬТЕ АДРЕС! Для локального теста: http://127.0.0.1:8000
         private const string BaseUrl = "https://fpbooster.shop"; 
         
         private string? _jwtToken;
         private readonly HttpClient _httpClient;
+        private readonly JsonSerializerOptions _jsonOptions;
 
-        public bool IsAuthorized => !string.IsNullOrEmpty(_jwtToken);
+        public bool IsAuthorized => true;
 
         private CloudApiClient()
         {
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(BaseUrl),
-                Timeout = TimeSpan.FromSeconds(20)
+                Timeout = TimeSpan.FromSeconds(30)
             };
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FPBooster-Client/1.2");
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FPBooster-Client/1.4");
+
+            // Настройки JSON: игнорируем регистр букв, разрешаем комментарии
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            };
+
+            // ========================================================================
+            // 🛑 DEV MODE: ВАШ ВЕЧНЫЙ ТОКЕН
+            // ========================================================================
+            string devToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4IiwiZW1haWwiOiJkb2JyeW1heDcwQGdtYWlsLmNvbSIsImlhdCI6MTc2NjA3OTQwMiwiZXhwIjoyMDgxNDM5NDAyfQ.frAxKkPm9ILpvb-IdOIZmdzpTJMhilTk-CunrNYFVeQ";
+            ApplyToken(devToken);
+            // ========================================================================
         }
 
         // --- AUTH ---
-        public bool TryLoadToken()
-        {
-            try
-            {
-                var configPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "FPBooster", "session.dat");
-                if (File.Exists(configPath))
-                {
-                    var token = File.ReadAllText(configPath).Trim();
-                    if (!string.IsNullOrEmpty(token))
-                    {
-                        ApplyToken(token);
-                        return true;
-                    }
-                }
-            }
-            catch (Exception ex) { Debug.WriteLine($"[CloudApi] Load Token Error: {ex.Message}"); }
-            return false;
-        }
+        public bool TryLoadToken() => true;
 
         public void ApplyToken(string token)
         {
@@ -62,69 +62,118 @@ namespace FPBooster.ServerApi
             _httpClient.DefaultRequestHeaders.Add("Cookie", $"user_auth={_jwtToken}");
         }
 
-        // --- GENERAL HELPER ---
-        private async Task<(bool Success, string Message)> PostDataAsync<T>(string url, T data)
+        // --- HELPER ---
+        private async Task<BaseResponse> PostDataAsync<T>(string url, T data)
         {
-            if (!IsAuthorized) return (false, "Нет авторизации");
             try
             {
-                var response = await _httpClient.PostAsJsonAsync(url, data);
-                if (response.IsSuccessStatusCode) return (true, "Успешно");
+                // Сериализуем данные с настройками
+                var json = JsonSerializer.Serialize(data, _jsonOptions);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync(url, content);
+                var str = await response.Content.ReadAsStringAsync();
+
+                if (response.IsSuccessStatusCode)
+                {
+                    try 
+                    {
+                        var resObj = JsonSerializer.Deserialize<BaseResponse>(str, _jsonOptions);
+                        if (resObj != null) return resObj;
+                    } 
+                    catch { }
+                    return new BaseResponse { Success = true, Message = "Успешно" };
+                }
                 
-                var err = await response.Content.ReadAsStringAsync();
-                return (false, $"Ошибка сервера ({response.StatusCode}): {err}");
+                // Если ошибка 422 или 500 - возвращаем её текст
+                return new BaseResponse { Success = false, Message = $"Сервер ({response.StatusCode}): {str}" };
             }
-            catch (Exception ex) { return (false, $"Ошибка сети: {ex.Message}"); }
+            catch (Exception ex) 
+            { 
+                return new BaseResponse { Success = false, Message = $"Сеть: {ex.Message}" }; 
+            }
         }
 
         // --- AUTO BUMP METHODS ---
-        public async Task<(bool Success, string Message)> SetAutoBumpAsync(string key, List<string> nodes, bool active)
+        public async Task<BaseResponse> SetAutoBumpAsync(string key, List<string> nodes, bool active)
         {
-            var payload = new { golden_key = key, node_ids = nodes, active = active };
-            return await PostDataAsync("/api/plus/autobump/set", payload);
+            // ИСПОЛЬЗУЕМ СТРОГИЙ КЛАСС (DTO), чтобы избежать ошибок типов
+            var request = new SetAutoBumpRequest
+            {
+                GoldenKey = key,
+                NodeIds = nodes ?? new List<string>(),
+                Active = active
+            };
+            
+            return await PostDataAsync("/api/plus/autobump/set", request);
         }
 
-        public async Task<bool> ForceCheckAutoBumpAsync()
+        public async Task<BaseResponse> ForceCheckAutoBumpAsync()
         {
-            if (!IsAuthorized) return false;
             try
             {
                 var res = await _httpClient.PostAsync("/api/plus/autobump/force_check", null);
-                return res.IsSuccessStatusCode;
+                var str = await res.Content.ReadAsStringAsync();
+
+                if (res.IsSuccessStatusCode) 
+                    return new BaseResponse { Success = true, Message = "Проверка запущена" };
+                
+                return new BaseResponse { Success = false, Message = str };
             }
-            catch { return false; }
+            catch (Exception ex) 
+            { 
+                return new BaseResponse { Success = false, Message = ex.Message }; 
+            }
         }
 
+        
         public async Task<CloudStatusResponse?> GetAutoBumpStatusAsync()
         {
-            if (!IsAuthorized) return null;
-            try { return await _httpClient.GetFromJsonAsync<CloudStatusResponse>("/api/plus/autobump/status"); }
-            catch { return null; }
-        }
-
-        // --- AUTO RESTOCK METHODS (NEW) ---
-        public async Task<(bool Success, string Message)> SetAutoRestockAsync(string key, object items, bool active)
-        {
-            var payload = new { golden_key = key, items = items, active = active };
-            return await PostDataAsync("/api/plus/autorestock/set", payload);
-        }
-
-        public async Task<bool> ForceCheckAutoRestockAsync()
-        {
-            if (!IsAuthorized) return false;
-            try {
-                var res = await _httpClient.PostAsync("/api/plus/autorestock/force_check", null);
-                return res.IsSuccessStatusCode;
+            try 
+            { 
+                var str = await _httpClient.GetStringAsync("/api/plus/autobump/status");
+                return JsonSerializer.Deserialize<CloudStatusResponse>(str, _jsonOptions);
             }
-            catch { return false; }
+            catch 
+            { 
+                return null; 
+            }
         }
 
-        // --- DTO ---
+        // --- DTO CLASSES (Строгая типизация для общения с Python) ---
+        
+        public class SetAutoBumpRequest
+        {
+            [JsonPropertyName("golden_key")]
+            public string GoldenKey { get; set; } = "";
+
+            [JsonPropertyName("node_ids")]
+            public List<string> NodeIds { get; set; } = new List<string>();
+
+            [JsonPropertyName("active")]
+            public bool Active { get; set; }
+        }
+
+        public class BaseResponse 
+        { 
+            [JsonPropertyName("success")]
+            public bool Success { get; set; } 
+            
+            [JsonPropertyName("message")]
+            public string Message { get; set; } = ""; 
+            
+            [JsonPropertyName("status")]
+            public string Status { 
+                set { if (value == "success") Success = true; } 
+            }
+        }
+
         public class CloudStatusResponse
         {
             [JsonPropertyName("is_active")] public bool IsActive { get; set; }
             [JsonPropertyName("next_bump")] public DateTime? NextBump { get; set; }
-            [JsonPropertyName("status_message")] public string StatusMessage { get; set; }
+            [JsonPropertyName("status_message")] public string? StatusMessage { get; set; }
+            [JsonPropertyName("node_ids")] public List<string>? NodeIds { get; set; } // <--- ДОБАВЛЕНО
         }
     }
 }

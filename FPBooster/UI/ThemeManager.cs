@@ -4,10 +4,10 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
 
-// --- ИСПРАВЛЕНИЕ КОНФЛИКТОВ ---
+// --- ПСЕВДОНИМЫ ---
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
-// ------------------------------
+// ------------------
 
 namespace FPBooster.UI
 {
@@ -17,13 +17,14 @@ namespace FPBooster.UI
         public static event Action<Uri>? BackgroundImageChanged;
 
         private static DispatcherTimer _slideShowTimer;
-        private static string _currentTheme = "MidnightBlue";
+        public static string CurrentTheme { get; private set; } = "Midnight Blue";
         private static int _currentImageIndex = 0;
         
         private static readonly Dictionary<string, Uri[]> _themeImages = new();
 
         static ThemeManager()
         {
+            // Инициализация путей к картинкам
             _themeImages["Celestial"] = new[] {
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/celestial_1.png"),
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/celestial_2.png"),
@@ -32,25 +33,24 @@ namespace FPBooster.UI
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/celestial_5.png")
             };
 
-            _themeImages["MidnightBlue"] = new[] {
+            _themeImages["Midnight Blue"] = new[] {
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/midnight_1.png"),
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/midnight_2.png"),
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/midnight_3.png"),
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/midnight_4.png")
             };
-            
-            _themeImages["DarkGoldboy"] = new[] {
+
+            _themeImages["Dark Goldboy"] = new[] {
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/goldboy_1.png"),
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/goldboy_2.png"),
                 new Uri("pack://application:,,,/FPBooster;component/UI/Resources/goldboy_3.png")
             };
 
-            _slideShowTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+            // Таймер для смены фона каждые 20 секунд
+            _slideShowTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
             _slideShowTimer.Tick += (s, e) => NextImage();
             _slideShowTimer.Start();
         }
-
-        public static string CurrentTheme => _currentTheme;
 
         public static void ApplyTheme(string themeName)
         {
@@ -72,11 +72,13 @@ namespace FPBooster.UI
 
                 Application.Current.Resources.MergedDictionaries.Add(dict);
 
-                _currentTheme = key;
+                CurrentTheme = themeName; // Исправлено сохранение имени с пробелами для UI
+                
+                // Сброс и установка первой картинки новой темы
                 _currentImageIndex = -1;
                 NextImage();
 
-                ThemeChanged?.Invoke(_currentTheme);
+                ThemeChanged?.Invoke(CurrentTheme);
             }
             catch (Exception ex)
             {
@@ -86,8 +88,8 @@ namespace FPBooster.UI
 
         private static void NextImage()
         {
-            if (!_themeImages.ContainsKey(_currentTheme)) return;
-            var images = _themeImages[_currentTheme];
+            if (!_themeImages.ContainsKey(CurrentTheme)) return;
+            var images = _themeImages[CurrentTheme];
             if (images.Length == 0) return;
 
             _currentImageIndex = (_currentImageIndex + 1) % images.Length;
