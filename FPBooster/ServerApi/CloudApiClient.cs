@@ -16,7 +16,7 @@ namespace FPBooster.ServerApi
         private static CloudApiClient? _instance;
         public static CloudApiClient Instance => _instance ??= new CloudApiClient();
 
-        // 🛑 ПРОВЕРЬТЕ АДРЕС!
+        // 🛑 ПРОВЕРЬТЕ АДРЕС! Для локального теста: http://127.0.0.1:8000
         private const string BaseUrl = "https://fpbooster.shop"; 
         
         private string? _jwtToken;
@@ -34,6 +34,7 @@ namespace FPBooster.ServerApi
             };
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FPBooster-Client/1.4");
 
+            // Настройки JSON: игнорируем регистр букв, разрешаем комментарии
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
@@ -41,10 +42,15 @@ namespace FPBooster.ServerApi
                 AllowTrailingCommas = true
             };
 
+            // ========================================================================
+            // 🛑 DEV MODE: ВАШ ВЕЧНЫЙ ТОКЕН
+            // ========================================================================
             string devToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4IiwiZW1haWwiOiJkb2JyeW1heDcwQGdtYWlsLmNvbSIsImlhdCI6MTc2NjA3OTQwMiwiZXhwIjoyMDgxNDM5NDAyfQ.frAxKkPm9ILpvb-IdOIZmdzpTJMhilTk-CunrNYFVeQ";
             ApplyToken(devToken);
+            // ========================================================================
         }
 
+        // --- AUTH ---
         public bool TryLoadToken() => true;
 
         public void ApplyToken(string token)
@@ -56,7 +62,7 @@ namespace FPBooster.ServerApi
             _httpClient.DefaultRequestHeaders.Add("Cookie", $"user_auth={_jwtToken}");
         }
 
-        // --- OLD HELPERS (НЕ ТРОГАЕМ!) ---
+        // --- HELPER ---
         private async Task<T?> GetJsonAsync<T>(string url)
         {
             try
@@ -73,6 +79,7 @@ namespace FPBooster.ServerApi
         {
             try
             {
+                // Сериализуем данные с настройками
                 var json = JsonSerializer.Serialize(data, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -81,21 +88,35 @@ namespace FPBooster.ServerApi
 
                 if (response.IsSuccessStatusCode)
                 {
-                    try {
+                    try 
+                    {
                         var resObj = JsonSerializer.Deserialize<BaseResponse>(str, _jsonOptions);
                         if (resObj != null) return resObj;
-                    } catch { }
+                    } 
+                    catch { }
                     return new BaseResponse { Success = true, Message = "Успешно" };
                 }
+                
+                // Если ошибка 422 или 500 - возвращаем её текст
                 return new BaseResponse { Success = false, Message = $"Сервер ({response.StatusCode}): {str}" };
             }
-            catch (Exception ex) { return new BaseResponse { Success = false, Message = $"Сеть: {ex.Message}" }; }
+            catch (Exception ex) 
+            { 
+                return new BaseResponse { Success = false, Message = $"Сеть: {ex.Message}" }; 
+            }
         }
 
-        // --- AUTO BUMP METHODS (СТАРЫЕ, РАБОЧИЕ) ---
+        // --- AUTO BUMP METHODS ---
         public async Task<BaseResponse> SetAutoBumpAsync(string key, List<string> nodes, bool active)
         {
-            var request = new SetAutoBumpRequest { GoldenKey = key, NodeIds = nodes, Active = active };
+            // ИСПОЛЬЗУЕМ СТРОГИЙ КЛАСС (DTO), чтобы избежать ошибок типов
+            var request = new SetAutoBumpRequest
+            {
+                GoldenKey = key,
+                NodeIds = nodes ?? new List<string>(),
+                Active = active
+            };
+            
             return await PostDataAsync("/api/plus/autobump/set", request);
         }
 
@@ -105,18 +126,65 @@ namespace FPBooster.ServerApi
             {
                 var res = await _httpClient.PostAsync("/api/plus/autobump/force_check", null);
                 var str = await res.Content.ReadAsStringAsync();
-                if (res.IsSuccessStatusCode) return new BaseResponse { Success = true, Message = "Проверка запущена" };
+
+                if (res.IsSuccessStatusCode) 
+                    return new BaseResponse { Success = true, Message = "Проверка запущена" };
+                
                 return new BaseResponse { Success = false, Message = str };
             }
-            catch (Exception ex) { return new BaseResponse { Success = false, Message = ex.Message }; }
+            catch (Exception ex) 
+            { 
+                return new BaseResponse { Success = false, Message = ex.Message }; 
+            }
         }
 
         public async Task<CloudStatusResponse?> GetAutoBumpStatusAsync()
         {
-            try { 
+            try 
+            { 
                 var str = await _httpClient.GetStringAsync("/api/plus/autobump/status");
                 return JsonSerializer.Deserialize<CloudStatusResponse>(str, _jsonOptions);
-            } catch { return null; }
+            }
+            catch 
+            { 
+                return null; 
+            }
+        }
+
+        // --- DTO CLASSES (Строгая типизация для общения с Python) ---
+        
+        public class SetAutoBumpRequest
+        {
+            [JsonPropertyName("golden_key")]
+            public string GoldenKey { get; set; } = "";
+
+            [JsonPropertyName("node_ids")]
+            public List<string> NodeIds { get; set; } = new List<string>();
+
+            [JsonPropertyName("active")]
+            public bool Active { get; set; }
+        }
+
+        public class BaseResponse 
+        { 
+            [JsonPropertyName("success")]
+            public bool Success { get; set; } 
+            
+            [JsonPropertyName("message")]
+            public string Message { get; set; } = ""; 
+            
+            [JsonPropertyName("status")]
+            public string Status { 
+                set { if (value == "success") Success = true; } 
+            }
+        }
+
+        public class CloudStatusResponse
+        {
+            [JsonPropertyName("is_active")] public bool IsActive { get; set; }
+            [JsonPropertyName("next_bump")] public DateTime? NextBump { get; set; }
+            [JsonPropertyName("status_message")] public string? StatusMessage { get; set; }
+            [JsonPropertyName("node_ids")] public List<string>? NodeIds { get; set; } // <--- ДОБАВЛЕНО
         }
 
         // =========================================================================
@@ -151,36 +219,18 @@ namespace FPBooster.ServerApi
             } catch { return null; }
         }
 
-        // --- DTO ---
-        public class SetAutoBumpRequest { 
-            [JsonPropertyName("golden_key")] public string GoldenKey { get; set; } = "";
-            [JsonPropertyName("node_ids")] public List<string> NodeIds { get; set; } = new();
-            [JsonPropertyName("active")] public bool Active { get; set; } 
-        }
-        public class BaseResponse { 
-            [JsonPropertyName("success")] public bool Success { get; set; } 
-            [JsonPropertyName("message")] public string Message { get; set; } = ""; 
-            [JsonPropertyName("status")] public string Status { set { if (value == "success") Success = true; } }
-        }
-        public class CloudStatusResponse { 
-            [JsonPropertyName("is_active")] public bool IsActive { get; set; }
-            [JsonPropertyName("next_bump")] public DateTime? NextBump { get; set; }
-            [JsonPropertyName("status_message")] public string? StatusMessage { get; set; }
-            [JsonPropertyName("node_ids")] public List<string>? NodeIds { get; set; }
-        }
-
         // New DTOs
         public class LotRestockConfig {
             [JsonPropertyName("node_id")] public string NodeId { get; set; } = "";
             [JsonPropertyName("offer_id")] public string OfferId { get; set; } = "";
             [JsonPropertyName("name")] public string Name { get; set; } = "";
             [JsonPropertyName("min_qty")] public int MinQty { get; set; }
-            [JsonPropertyName("add_secrets")] public List<string> AddSecrets { get; set; } = new();
+            [JsonPropertyName("add_secrets")] public List<string> AddSecrets { get; set; } = new List<string>();
         }
         public class RestockStatusResponse {
             [JsonPropertyName("active")] public bool Active { get; set; }
             [JsonPropertyName("message")] public string Message { get; set; } = "";
-            [JsonPropertyName("lots")] public List<LotStatusInfo> Lots { get; set; } = new();
+            [JsonPropertyName("lots")] public List<LotStatusInfo> Lots { get; set; } = new List<LotStatusInfo>();
         }
         public class LotStatusInfo {
             [JsonPropertyName("node_id")] public string NodeId { get; set; } = "";
@@ -190,7 +240,7 @@ namespace FPBooster.ServerApi
             [JsonPropertyName("keys_in_db")] public int KeysInDb { get; set; }
         }
         public class FetchOffersResponse : BaseResponse {
-            [JsonPropertyName("data")] public List<FetchedOffer> Data { get; set; } = new();
+            [JsonPropertyName("data")] public List<FetchedOffer> Data { get; set; } = new List<FetchedOffer>();
         }
         public class FetchedOffer {
             [JsonPropertyName("node_id")] public string NodeId { get; set; } = "";

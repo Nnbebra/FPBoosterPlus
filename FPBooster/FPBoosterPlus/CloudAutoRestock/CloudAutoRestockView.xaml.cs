@@ -9,13 +9,15 @@ using System.Windows.Media;
 using FPBooster.ServerApi;
 using FPBooster.Config;
 
+// ПСЕВДОНИМЫ
 using UserControl = System.Windows.Controls.UserControl;
+using Button = System.Windows.Controls.Button;
 using TextBox = System.Windows.Controls.TextBox;
 using ListBox = System.Windows.Controls.ListBox;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Application = System.Windows.Application;
-using Button = System.Windows.Controls.Button;
+using MessageBox = System.Windows.MessageBox;
 
 namespace FPBooster.FPBoosterPlus
 {
@@ -23,7 +25,7 @@ namespace FPBooster.FPBoosterPlus
     {
         public event Action NavigateBack;
         public ObservableCollection<FPBooster.MainWindow.LogEntry> Logs { get; private set; } = new ObservableCollection<FPBooster.MainWindow.LogEntry>();
-        
+
         public class OfferViewModel
         {
             public string NodeId { get; set; } = "";
@@ -36,6 +38,7 @@ namespace FPBooster.FPBoosterPlus
 
         private ObservableCollection<OfferViewModel> _offers = new ObservableCollection<OfferViewModel>();
 
+        // ОБЫЧНЫЙ КОНСТРУКТОР (БЕЗ АРГУМЕНТОВ)
         public CloudAutoRestockView()
         {
             InitializeComponent();
@@ -48,6 +51,7 @@ namespace FPBooster.FPBoosterPlus
             };
         }
 
+        // Метод для подключения общего лога
         public void SetSharedLog(ObservableCollection<FPBooster.MainWindow.LogEntry> shared)
         {
             Logs = shared;
@@ -73,9 +77,10 @@ namespace FPBooster.FPBoosterPlus
                     var items = lb.Items.Cast<object>().Select(x => x.ToString()).Where(s => !string.IsNullOrWhiteSpace(s)); 
                     InputNodes.Text = string.Join("\n", items); 
                 }
-                Log("Restock: Данные импортированы", Brushes.Cyan);
+                
+                Log("Данные импортированы из лаунчера", Brushes.Cyan);
             } 
-            catch { Log("Restock: Ошибка импорта", Brushes.Red); }
+            catch { Log("Ошибка импорта", Brushes.Red); }
         }
 
         private async void OnLoadOffersClick(object sender, RoutedEventArgs e)
@@ -83,44 +88,101 @@ namespace FPBooster.FPBoosterPlus
             var key = InputKey.Password;
             var nodes = InputNodes.Text.Split(new[]{'\n','\r'}, StringSplitOptions.RemoveEmptyEntries).ToList();
 
-            if (string.IsNullOrEmpty(key) || !nodes.Any()) {
-                Log("Restock: Введите Golden Key и Node ID", Brushes.Orange);
+            if (string.IsNullOrEmpty(key) || !nodes.Any()) 
+            {
+                Log("Введите Golden Key и Node ID!", Brushes.Orange);
                 return;
             }
 
             BtnLoadOffers.IsEnabled = false;
-            Log("Restock: Анализ лотов...", Brushes.Gray);
+            Log("Анализ офферов (это может занять время)...", Brushes.Gray);
 
-            try {
+            try
+            {
                 var result = await CloudApiClient.Instance.FetchRestockOffersAsync(key, nodes);
-                if (result != null && result.Success) {
-                    foreach (var f in result.Data) {
-                        if (f.Valid && !_offers.Any(o => o.OfferId == f.OfferId)) {
-                            _offers.Add(new OfferViewModel { NodeId = f.NodeId, OfferId = f.OfferId, Name = f.Name });
+                
+                if (result != null && result.Success)
+                {
+                    int added = 0;
+                    foreach (var fetched in result.Data)
+                    {
+                        if (fetched.Valid)
+                        {
+                            if (!_offers.Any(x => x.OfferId == fetched.OfferId))
+                            {
+                                _offers.Add(new OfferViewModel
+                                {
+                                    NodeId = fetched.NodeId,
+                                    OfferId = fetched.OfferId,
+                                    Name = fetched.Name,
+                                    MinQty = 5,
+                                    StatusInfo = "Новый"
+                                });
+                                added++;
+                            }
+                        }
+                        else
+                        {
+                            // Ошибки по конкретным нодам не выводим в основной лог, чтобы не спамить
                         }
                     }
-                    Log($"Restock: Найдено {result.Data.Count} офферов", Brushes.LightGreen);
-                } else Log("Restock: Ошибка сервера", Brushes.Red);
-            } catch (Exception ex) { Log("Restock: " + ex.Message, Brushes.Red); }
-            finally { BtnLoadOffers.IsEnabled = true; }
+                    Log($"Загружено {added} офферов", Brushes.LightGreen);
+                }
+                else
+                {
+                    Log($"Ошибка сервера: {result?.Message}", Brushes.Red);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Исключение: {ex.Message}", Brushes.Red);
+            }
+            finally
+            {
+                BtnLoadOffers.IsEnabled = true;
+            }
         }
 
         private async void OnSaveClick(object sender, RoutedEventArgs e)
         {
             BtnSave.IsEnabled = false;
-            Log("Restock: Сохранение...", Brushes.Gray);
+            Log("Сохранение...", Brushes.Gray);
 
-            var list = _offers.Select(o => new CloudApiClient.LotRestockConfig {
-                NodeId = o.NodeId, OfferId = o.OfferId, Name = o.Name, MinQty = o.MinQty,
-                AddSecrets = o.KeysToAddRaw.Split(new[]{'\n','\r'}, StringSplitOptions.RemoveEmptyEntries).ToList()
-            }).ToList();
+            var apiList = new List<CloudApiClient.LotRestockConfig>();
+            
+            foreach (var vm in _offers)
+            {
+                var keys = vm.KeysToAddRaw.Split(new[]{'\n','\r'}, StringSplitOptions.RemoveEmptyEntries).Select(k=>k.Trim()).ToList();
+                
+                apiList.Add(new CloudApiClient.LotRestockConfig
+                {
+                    NodeId = vm.NodeId,
+                    OfferId = vm.OfferId,
+                    Name = vm.Name,
+                    MinQty = vm.MinQty,
+                    AddSecrets = keys
+                });
+            }
 
-            var res = await CloudApiClient.Instance.SaveAutoRestockAsync(InputKey.Password, SwitchActive.IsChecked == true, list);
-            if (res.Success) {
-                Log("Restock: ✅ Сохранено", Brushes.LightGreen);
-                foreach (var o in _offers) o.KeysToAddRaw = "";
-                await SyncWithServer();
-            } else Log("Restock: ❌ Ошибка: " + res.Message, Brushes.Red);
+            var res = await CloudApiClient.Instance.SaveAutoRestockAsync(
+                InputKey.Password, 
+                SwitchActive.IsChecked == true, 
+                apiList
+            );
+
+            if (res.Success)
+            {
+                Log("✅ Конфигурация сохранена", Brushes.LightGreen);
+                foreach (var vm in _offers) vm.KeysToAddRaw = "";
+                // Обновляем view, чтобы стереть введенные ключи
+                var temp = _offers.ToList(); _offers.Clear(); foreach(var t in temp) _offers.Add(t);
+                
+                await SyncWithServer(); 
+            }
+            else
+            {
+                Log($"Ошибка: {res.Message}", Brushes.Red);
+            }
 
             BtnSave.IsEnabled = true;
         }
@@ -128,22 +190,42 @@ namespace FPBooster.FPBoosterPlus
         private async Task SyncWithServer()
         {
             var status = await CloudApiClient.Instance.GetAutoRestockStatusAsync();
-            if (status != null) {
+            if (status != null)
+            {
                 SwitchActive.IsChecked = status.Active;
                 TxtStatus.Text = status.Message;
-                foreach (var s in status.Lots) {
-                    var existing = _offers.FirstOrDefault(x => x.OfferId == s.OfferId);
-                    if (existing != null) {
-                        existing.StatusInfo = $"В базе: {s.KeysInDb} шт.";
-                        existing.MinQty = s.MinQty;
-                    } else {
-                        _offers.Add(new OfferViewModel { NodeId = s.NodeId, OfferId = s.OfferId, Name = s.Name, MinQty = s.MinQty, StatusInfo = $"В базе: {s.KeysInDb} шт." });
+
+                foreach (var sLot in status.Lots)
+                {
+                    var existing = _offers.FirstOrDefault(x => x.OfferId == sLot.OfferId);
+                    if (existing != null)
+                    {
+                        existing.StatusInfo = $"Ключей на сервере: {sLot.KeysInDb}";
+                        existing.MinQty = sLot.MinQty;
+                    }
+                    else
+                    {
+                        _offers.Add(new OfferViewModel
+                        {
+                            NodeId = sLot.NodeId,
+                            OfferId = sLot.OfferId,
+                            Name = sLot.Name,
+                            MinQty = sLot.MinQty,
+                            StatusInfo = $"Ключей на сервере: {sLot.KeysInDb}"
+                        });
                     }
                 }
             }
         }
 
-        private void OnDeleteOfferClick(object sender, RoutedEventArgs e) { if ((sender as Button)?.DataContext is OfferViewModel vm) _offers.Remove(vm); }
+        private void OnDeleteOfferClick(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.DataContext is OfferViewModel vm)
+            {
+                _offers.Remove(vm);
+            }
+        }
+
         private void LoadLocalConfig() { try { var c = ConfigManager.Load(); InputKey.Password = c.GoldenKey; } catch { } }
         private void Log(string m, Brush c) => Logs.Insert(0, new FPBooster.MainWindow.LogEntry { Text = $"[{DateTime.Now:HH:mm}] {m}", Color = c });
         private void OnClearLogClick(object s, RoutedEventArgs e) => Logs.Clear();
