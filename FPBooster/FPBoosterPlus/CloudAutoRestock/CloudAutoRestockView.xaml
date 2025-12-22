@@ -7,78 +7,451 @@
 
     <UserControl.Resources>
         <Style x:Key="GlassPanel" TargetType="Border">
-            <Setter Property="Background" Value="#22151520"/><Setter Property="CornerRadius" Value="16"/><Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/><Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Effect"><Setter.Value><DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.2"/></Setter.Value></Setter>
+            <Setter Property="Background" Value="#22101015"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="Black" BlurRadius="25" ShadowDepth="8" Opacity="0.3"/>
+                </Setter.Value>
+            </Setter>
         </Style>
+
+        <Style x:Key="RoundGlassButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#15FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="25" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#25FFFFFF"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" ShadowDepth="0" Opacity="0.4"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#10FFFFFF"/>
+                                <Setter TargetName="bd" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.95" ScaleY="0.95" CenterX="22.5" CenterY="22.5"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AnimatedSwitch" TargetType="CheckBox">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Width="46" Height="24" Background="Transparent">
+                            <Border x:Name="Track" CornerRadius="12" Background="#44000000" BorderBrush="#55FFFFFF" BorderThickness="2"/>
+                            <Ellipse x:Name="Thumb" Width="16" Height="16" Fill="White" HorizontalAlignment="Left" Margin="4,0,0,0" VerticalAlignment="Center">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform X="0" Y="0"/>
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <EventTrigger RoutedEvent="Checked">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                         To="22" Duration="0:0:0.25" DecelerationRatio="0.7"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="{StaticResource ColorAccentLight}" Duration="0:0:0.2"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                        To="{StaticResource ColorAccentLight}" Duration="0:0:0.2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="Unchecked">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Thumb" Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                         To="0" Duration="0:0:0.25" DecelerationRatio="0.7"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="#44000000" Duration="0:0:0.2"/>
+                                        <ColorAnimation Storyboard.TargetName="Track" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)"
+                                                        To="#55FFFFFF" Duration="0:0:0.2"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="GlassTextBox" TargetType="TextBox">
-            <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#15FFFFFF"/><Setter Property="BorderBrush" Value="#33FFFFFF"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="10,8"/>
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="bd" CornerRadius="6" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"><ScrollViewer x:Name="PART_ContentHost" Margin="2"/></Border></ControlTemplate></Setter.Value></Setter>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#10FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="bd" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="#66FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter TargetName="bd" Property="Background" Value="#18FFFFFF"/>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{StaticResource ColorAccentLight}" BlurRadius="5" ShadowDepth="0" Opacity="0.2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
+
         <Style x:Key="GlassPrimaryButton" TargetType="Button">
-            <Setter Property="Foreground" Value="White"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="bd" CornerRadius="8" Background="{DynamicResource BrushAccentDeep}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15,8"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bd" Property="Opacity" Value="0.8"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="bd" Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="12">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="{DynamicResource ColorAccentDeep}" Offset="0"/>
+                                    <GradientStop Color="{DynamicResource ColorAccentLight}" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Border.Effect>
+                                <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" ShadowDepth="0" Opacity="0.3"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="15,8"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.9"/>
+                                <Setter TargetName="bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="20" ShadowDepth="0" Opacity="0.6"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.3"/>
+                                <Setter TargetName="bd" Property="Effect" Value="{x:Null}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
+
+        <Style x:Key="GlassSecondaryButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#15FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,5"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#25FFFFFF"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#10FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <ControlTemplate x:Key="CategoryHeaderTemplate" TargetType="ToggleButton">
+            <Border Background="Transparent" Padding="15" Cursor="Hand">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding NodeName}" Foreground="White" FontWeight="Bold" FontSize="15">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="2" Opacity="0.5"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        <TextBlock Text="{Binding NodeId, StringFormat='ID: {0}'}" Foreground="{DynamicResource BrushAccentLight}" FontSize="11" Margin="0,2,0,0" Opacity="0.8"/>
+                    </StackPanel>
+                    
+                    <TextBlock Grid.Column="1" Text="▼" Foreground="Gray" FontSize="10" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </Grid>
+            </Border>
+        </ControlTemplate>
+
+        <Style x:Key="CategoryExpander" TargetType="Expander">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <Border Background="#08FFFFFF" CornerRadius="14" BorderBrush="#15FFFFFF" BorderThickness="1">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <ToggleButton Template="{StaticResource CategoryHeaderTemplate}"
+                                              IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+                                <ContentPresenter Grid.Row="1" x:Name="ExpandSite" Visibility="Collapsed" Margin="15,0,15,15"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                                <Setter Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="Background" Value="#12FFFFFF"/>
+                                <Setter Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect Color="Black" BlurRadius="10" ShadowDepth="2" Opacity="0.2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid>
+                            <Border Background="#05FFFFFF" CornerRadius="3"/>
+                            <Track Name="PART_Track" IsDirectionReversed="true">
+                                <Track.Thumb>
+                                    <Thumb>
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border Background="#40FFFFFF" CornerRadius="3"/>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
     </UserControl.Resources>
 
     <Grid Margin="40,30">
-        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
         <DockPanel Grid.Row="0" Margin="0,0,0,30">
-            <Button x:Name="BtnBack" Click="OnBackClick" Content="⬅ Назад" Background="Transparent" Foreground="Gray" BorderThickness="0" DockPanel.Dock="Left"/>
-            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
-                <TextBlock Text="📦" FontSize="26" Margin="0,0,10,0"/><TextBlock Text="Auto Restock Cloud" FontSize="26" FontWeight="Bold" Foreground="White"/>
+            <Button Content="" Click="OnBackClick" Style="{StaticResource RoundGlassButton}" Width="45" Height="45" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
+            
+            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Margin="0,0,45,0">
+                <TextBlock Text="📦" FontSize="36" Margin="0,0,15,0" VerticalAlignment="Center">
+                    <TextBlock.Effect>
+                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="20" ShadowDepth="0" Opacity="0.4"/>
+                    </TextBlock.Effect>
+                </TextBlock>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="AUTO RESTOCK CLOUD" FontSize="28" FontWeight="Bold" Foreground="White">
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="{StaticResource ColorAccentLight}" BlurRadius="15" ShadowDepth="0" Opacity="0.6"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                    <TextBlock Text="Автоматическое пополнение бесконечных товаров" Foreground="#AAA" FontSize="13" Margin="2,2,0,0"/>
+                </StackPanel>
             </StackPanel>
         </DockPanel>
 
         <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="400"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="380"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="320"/>
+            </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Margin="0,0,30,0">
-                <Border Style="{StaticResource GlassPanel}" Padding="20" Margin="0,0,0,20">
-                    <StackPanel>
-                        <TextBlock Text="ДОСТУП И ИМПОРТ" Foreground="#888" FontSize="11" FontWeight="Bold" Margin="0,0,0,15"/>
-                        <TextBlock Text="Golden Key" Foreground="Gray" FontSize="11" Margin="0,0,0,5"/>
-                        <PasswordBox x:Name="InputKey" Height="35" Background="#15FFFFFF" Foreground="White" Margin="0,0,0,10"/>
-                        <DockPanel Margin="0,5,0,5"><TextBlock Text="Node IDs" Foreground="Gray" FontSize="11"/><Button Content="📥 Импорт" Click="OnImportClick" Background="Transparent" Foreground="#00FF99" BorderThickness="0" DockPanel.Dock="Right" Cursor="Hand"/></DockPanel>
-                        <TextBox x:Name="InputNodes" Style="{StaticResource GlassTextBox}" Height="100" AcceptsReturn="True" Margin="0,0,0,15" Tag="Введите Node ID через запятую или строку"/>
-                        
-                        <Button x:Name="BtnLoadOffers" Content="🔍 ЗАГРУЗИТЬ ОФФЕРЫ" Click="OnLoadOffersClick" Style="{StaticResource GlassPrimaryButton}" Height="40"/>
-                    </StackPanel>
-                </Border>
-                <Border Style="{StaticResource GlassPanel}" Padding="15" VerticalAlignment="Stretch">
-                    <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
-                            <TextBlock Text="ЖУРНАЛ СОБЫТИЙ" Foreground="#888" FontSize="11" FontWeight="Bold"/>
-                            <Button Content="Очистить" Click="OnClearLogClick" Background="Transparent" Foreground="Gray" BorderThickness="0" DockPanel.Dock="Right"/>
+                
+                <Border Style="{StaticResource GlassPanel}" Height="130" Margin="0,0,0,25">
+                    <Grid>
+                        <Border x:Name="PowerCardGlow" Background="{DynamicResource BrushAccentLight}" Opacity="0.05" CornerRadius="16"/>
+                        <DockPanel Margin="25">
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="ActiveStatusText" Text="ОСТАНОВЛЕН" Foreground="Gray" FontSize="18" FontWeight="Black"/>
+                                <TextBlock x:Name="TxtStatus" Text="Ожидание данных..." Foreground="Gray" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="SwitchActive" Style="{StaticResource AnimatedSwitch}" Click="OnSaveClick" DockPanel.Dock="Right" VerticalAlignment="Center">
+                                <CheckBox.LayoutTransform>
+                                    <ScaleTransform ScaleX="1.3" ScaleY="1.3"/>
+                                </CheckBox.LayoutTransform>
+                            </CheckBox>
                         </DockPanel>
-                        <ListBox x:Name="LogList" Grid.Row="1" Background="Transparent" BorderThickness="0" Height="250">
-                            <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Text}" Foreground="{Binding Color}" FontSize="11" TextWrapping="Wrap" Margin="0,2"/></DataTemplate></ListBox.ItemTemplate>
-                        </ListBox>
                     </Grid>
+                </Border>
+
+                <Border Style="{StaticResource GlassPanel}" Padding="25">
+                    <StackPanel>
+                        <TextBlock Text="НАСТРОЙКИ ДОСТУПА" Foreground="{DynamicResource BrushAccentLight}" FontWeight="Bold" FontSize="12" Margin="0,0,0,20" Opacity="0.9">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="{StaticResource ColorAccentLight}" BlurRadius="5" ShadowDepth="0" Opacity="0.3"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
+                        
+                        <TextBlock Text="Golden Key" Foreground="#AAA" FontSize="11" Margin="5,0,0,6"/>
+                        
+                        <Border CornerRadius="20" Background="#10FFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1" Height="40" Margin="0,0,0,20">
+                            <PasswordBox x:Name="InputKey" Background="Transparent" BorderThickness="0" Foreground="White" VerticalContentAlignment="Center" Padding="15,0"/>
+                        </Border>
+                        
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Node IDs (Категории)" Foreground="#AAA" FontSize="11" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                            <Button Grid.Column="1" Content="📥 ИМПОРТ" Click="OnImportClick" Style="{StaticResource GlassSecondaryButton}" Padding="10,4" FontSize="10" FontWeight="SemiBold"/>
+                        </Grid>
+                        
+                        <TextBox x:Name="InputNodes" Style="{StaticResource GlassTextBox}" Height="120" AcceptsReturn="True" Margin="0,0,0,25" VerticalScrollBarVisibility="Auto"/>
+                        
+                        <Button x:Name="BtnLoadOffers" Content="🔍 ЗАГРУЗИТЬ ОФФЕРЫ" Click="OnLoadOffersClick" Style="{StaticResource GlassPrimaryButton}" Height="48" FontSize="14"/>
+                    </StackPanel>
                 </Border>
             </StackPanel>
 
             <Border Grid.Column="1" Style="{StaticResource GlassPanel}" Padding="20">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                    <DockPanel Grid.Row="0" Margin="0,0,0,15">
-                        <TextBlock Text="НАСТРОЙКА ТОВАРОВ" Foreground="#888" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                            <TextBlock x:Name="TxtStatus" Text="Готов" Foreground="Gray" Margin="0,0,15,0" VerticalAlignment="Center"/>
-                            <CheckBox x:Name="SwitchActive" Content="АКТИВНО" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
-                        </StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Text="СПИСОК ТОВАРОВ" Foreground="{DynamicResource BrushAccentLight}" FontWeight="Bold" Margin="5,0,0,15" Opacity="0.9">
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="{StaticResource ColorAccentLight}" BlurRadius="5" ShadowDepth="0" Opacity="0.3"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly" Margin="0,0,-10,0" Padding="0,0,10,0">
+                        <ItemsControl x:Name="ListCategories" Background="Transparent" BorderThickness="0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Expander Style="{StaticResource CategoryExpander}" IsExpanded="{Binding IsExpanded}">
+                                        <Expander.Header>
+                                            <Grid/> </Expander.Header>
+                                        
+                                        <ItemsControl ItemsSource="{Binding Offers}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,12">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="90"/>
+                                                            <ColumnDefinition Width="70"/>
+                                                            <ColumnDefinition Width="220"/>
+                                                            <ColumnDefinition Width="35"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        
+                                                        <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,15,0">
+                                                            <TextBlock Text="{Binding Name}" Foreground="White" FontWeight="SemiBold" FontSize="13" TextWrapping="Wrap" LineHeight="18"/>
+                                                            <TextBlock Text="{Binding StatusInfo}" Foreground="{DynamicResource BrushAccentLight}" FontSize="10" Margin="0,4,0,0" Opacity="0.8"/>
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="1" Margin="5,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="МИН. КОЛ-ВО" Foreground="Gray" FontSize="9" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                                            <TextBox Text="{Binding MinQty}" Style="{StaticResource GlassTextBox}" Height="30" HorizontalContentAlignment="Center" FontSize="12"/>
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                                            <TextBlock Text="АВТО-ВКЛ" Foreground="Gray" FontSize="9" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                                            <CheckBox IsChecked="{Binding AutoEnable}" Style="{StaticResource AnimatedSwitch}" HorizontalAlignment="Center">
+                                                                <CheckBox.LayoutTransform>
+                                                                    <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
+                                                                </CheckBox.LayoutTransform>
+                                                            </CheckBox>
+                                                        </StackPanel>
+
+                                                        <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="10,0">
+                                                            <TextBlock Text="ТОВАР (ССЫЛКА)" Foreground="Gray" FontSize="9" Margin="0,0,0,4"/>
+                                                            <TextBox Text="{Binding KeysToAddRaw}" Style="{StaticResource GlassTextBox}" Height="45" AcceptsReturn="True" FontSize="11" TextWrapping="Wrap"/>
+                                                        </StackPanel>
+
+                                                        <Button Grid.Column="4" Content="✕" Click="OnDeleteOfferClick" Background="Transparent" BorderThickness="0" Foreground="#66FF5555" FontSize="16" VerticalAlignment="Center" Cursor="Hand" ToolTip="Убрать оффер из списка"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Button x:Name="BtnSave" Grid.Row="2" Content="💾 СОХРАНИТЬ КОНФИГУРАЦИЮ" Click="OnSaveClick" Style="{StaticResource GlassPrimaryButton}" Height="55" Margin="0,20,0,0" FontSize="14"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource GlassPanel}" Margin="30,0,0,0" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <DockPanel LastChildFill="False" Margin="0,0,0,15">
+                        <TextBlock Text="ЖУРНАЛ" Foreground="{DynamicResource BrushAccentLight}" FontWeight="Bold" VerticalAlignment="Center" Opacity="0.9"/>
+                        <Button Content="Очистить" Click="OnClearLogClick" Style="{StaticResource GlassSecondaryButton}" DockPanel.Dock="Right" Padding="10,4" FontSize="10"/>
                     </DockPanel>
-                    <ListBox x:Name="ListOffers" Grid.Row="1" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch">
-                        <ListBox.ItemTemplate><DataTemplate>
-                            <Border Background="#10FFFFFF" CornerRadius="10" Padding="15" Margin="0,0,0,10">
-                                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="100"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                                    <StackPanel Grid.Column="0"><TextBlock Text="{Binding Name}" Foreground="White" FontWeight="Bold"/><TextBlock Text="{Binding StatusInfo}" Foreground="Gray" FontSize="11"/></StackPanel>
-                                    <StackPanel Grid.Column="1" Margin="10,0"><TextBlock Text="Мин. кол-во" Foreground="Gray" FontSize="10"/><TextBox Text="{Binding MinQty}" Style="{StaticResource GlassTextBox}" Height="30"/></StackPanel>
-                                    <StackPanel Grid.Column="2" Width="200"><TextBlock Text="Добавить ключи" Foreground="Gray" FontSize="10"/><TextBox Text="{Binding KeysToAddRaw}" Style="{StaticResource GlassTextBox}" Height="50" AcceptsReturn="True"/></StackPanel>
-                                    <Button Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Right" Content="✕" Click="OnDeleteOfferClick" Background="Transparent" Foreground="Red" BorderThickness="0" Margin="0,-10,-10,0"/>
-                                </Grid></Border>
-                        </DataTemplate></ListBox.ItemTemplate>
+
+                    <ListBox x:Name="LogList" Grid.Row="1" Background="Transparent" BorderThickness="0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" FontSize="11" TextWrapping="Wrap" Margin="0,4" FontFamily="Segoe UI" LineHeight="16"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
                     </ListBox>
-                    <Button x:Name="BtnSave" Grid.Row="2" Content="💾 СОХРАНИТЬ КОНФИГУРАЦИЮ" Click="OnSaveClick" Style="{StaticResource GlassPrimaryButton}" Height="45" Margin="0,15,0,0"/>
                 </Grid>
             </Border>
         </Grid>
