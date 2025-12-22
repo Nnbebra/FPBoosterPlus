@@ -1,95 +1,113 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Effects; // Для эффектов, если нужно в коде
 using System.Windows.Threading;
-using FPBooster.FunPay;
-using FPBooster.Config;
+using FPBooster.Plugins;
 
-// Псевдонимы (УСТРАНЕНИЕ КОНФЛИКТОВ)
+// --- ПСЕВДОНИМЫ ---
 using UserControl = System.Windows.Controls.UserControl;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using Color = System.Windows.Media.Color;
 using Button = System.Windows.Controls.Button;
-using TextBox = System.Windows.Controls.TextBox;
-using WpfApplication = System.Windows.Application;
-using MediaBrush = System.Windows.Media.Brush;
-using MediaBrushes = System.Windows.Media.Brushes;
-using WpfHorizontalAlignment = System.Windows.HorizontalAlignment; 
+using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using VerticalAlignment = System.Windows.VerticalAlignment;
-using FontWeight = System.Windows.FontWeight;
-using FontWeights = System.Windows.FontWeights;
-using Grid = System.Windows.Controls.Grid;
 using Thickness = System.Windows.Thickness;
-using FontFamily = System.Windows.Media.FontFamily;
 
 namespace FPBooster.Plugins
 {
     public partial class AdvProfileStatView : UserControl, IPlugin
     {
-        public string Id => "adv_profile_stat";
-        public string DisplayName => "Статистика профиля";
-        public UserControl GetView() => this;
-
         private readonly AdvProfileStatCore _core;
         private string _goldenKey = "";
+        
         private ObservableCollection<FPBooster.MainWindow.LogEntry>? _sharedLog;
+        private ObservableCollection<FPBooster.MainWindow.LogEntry> _localLog;
+        
         private DispatcherTimer _statusTimer;
         private Dictionary<string, object> _currentStats = new();
         private bool _isInitialized = false;
         private bool _isDemoData = true;
-        private bool _isLoading = false;
+
+        public string Id => "adv_profile_stat";
+        public string DisplayName => "Статистика профиля";
+        public UserControl GetView() => this;
+
+        private readonly List<(string Key, string Label)> _periods = new()
+        {
+            ("day", "День 🌞"),
+            ("week", "Неделя 📅"), 
+            ("month", "Месяц 🗓️"),
+            ("all", "Все время ♾️")
+        };
 
         public AdvProfileStatView()
         {
             InitializeComponent();
-            _core = new AdvProfileStatCore(new System.Net.Http.HttpClient());
+            _core = new AdvProfileStatCore(new HttpClient());
+            _localLog = new ObservableCollection<FPBooster.MainWindow.LogEntry>();
+            
+            if (PluginLogListBox != null)
+                PluginLogListBox.ItemsSource = _localLog;
+            
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
-            _statusTimer.Tick += async (s, e) => await RefreshStatsAsync();
+            _statusTimer.Tick += async (s, e) => await RefreshStats();
+            _statusTimer.Start();
         }
 
         public void InitNodes(IEnumerable<string> nodes, string goldenKey)
         {
             _goldenKey = goldenKey;
-            if (string.IsNullOrEmpty(_goldenKey)) _goldenKey = TryFindGoldenKey();
-
+            
             if (!string.IsNullOrEmpty(_goldenKey))
             {
-                var client = ProfileParser.CreateClient(_goldenKey);
+                var client = FPBooster.FunPay.ProfileParser.CreateClient(_goldenKey);
                 _core.SetHttpClient(client);
-                _core.SetUseRealData(true);
                 _isDemoData = false;
+                _core.SetUseRealData(true);
             }
-            else
-            {
-                _core.SetUseRealData(false);
-                _isDemoData = true;
-            }
-
+            
             if (!_isInitialized)
             {
                 _isInitialized = true;
-                _statusTimer.Start();
-                Dispatcher.BeginInvoke(new Action(async () => await RefreshStatsAsync()), DispatcherPriority.Background);
+                LoadData();
             }
         }
 
-        public void BindLog(ObservableCollection<FPBooster.MainWindow.LogEntry> log) => _sharedLog = log;
-        public void SetTheme(string theme) { }
+        public void BindLog(ObservableCollection<FPBooster.MainWindow.LogEntry> sharedLog)
+        {
+            _sharedLog = sharedLog;
+        }
 
-        // --- КНОПКИ ---
-        private async void RefreshButton_Click(object sender, RoutedEventArgs e) => await RefreshStatsAsync();
-        
+        public void SetTheme(string themeKey) { }
+
+        private async void LoadData()
+        {
+            if (_isDemoData) AppendLog("[INFO] Демо-режим (нет ключа)", Brushes.Orange);
+            await RefreshStats();
+        }
+
         private async void QuickRefreshButton_Click(object sender, RoutedEventArgs e)
         {
             if (QuickRefreshButton == null) return;
             try
             {
                 QuickRefreshButton.IsEnabled = false;
+                AppendLog("[INFO] Обновление баланса...");
+                SetStatus("Обновление...", Brushes.Yellow);
+
                 var balances = await _core.FetchQuickWithdrawAsync();
                 
-                if (!_currentStats.ContainsKey("canWithdraw")) _currentStats["canWithdraw"] = new Dictionary<string, string>();
+                if (!_currentStats.ContainsKey("canWithdraw")) 
+                    _currentStats["canWithdraw"] = new Dictionary<string, string>();
+                
                 var dict = _currentStats["canWithdraw"] as Dictionary<string, string>;
                 if (dict != null)
                 {
@@ -97,82 +115,50 @@ namespace FPBooster.Plugins
                 }
                 
                 UpdateStatsDisplay(_currentStats);
-                AppendLog("[SUCCESS] Баланс обновлен");
-            }
-            catch (Exception ex) { AppendLog($"[ERR] {ex.Message}"); }
-            finally { QuickRefreshButton.IsEnabled = true; }
-        }
-        
-        private void OnClearPluginLog(object sender, RoutedEventArgs e) { } 
-
-        private string TryFindGoldenKey()
-        {
-            if (!string.IsNullOrEmpty(_goldenKey)) return _goldenKey;
-            try { return ConfigManager.Load().GoldenKey; } catch { }
-            try {
-                var mw = WpfApplication.Current.MainWindow;
-                if (mw != null) {
-                    var input = mw.FindName("GoldenKeyInput") as TextBox;
-                    if (input != null) return input.Text.Trim();
-                }
-            } catch { }
-            return "";
-        }
-
-        private async Task RefreshStatsAsync()
-        {
-            if (_isLoading) return;
-            _isLoading = true;
-            if (PluginStatus != null) PluginStatus.Text = "Загрузка...";
-
-            try
-            {
-                if (_isDemoData && string.IsNullOrEmpty(_goldenKey))
-                {
-                    _goldenKey = TryFindGoldenKey();
-                    if (!string.IsNullOrEmpty(_goldenKey))
-                    {
-                        var client = ProfileParser.CreateClient(_goldenKey);
-                        _core.SetHttpClient(client);
-                        _core.SetUseRealData(true);
-                        _isDemoData = false;
-                    }
-                }
-
-                AppendLog(_isDemoData ? "[INFO] Демо-режим..." : "[INFO] Загрузка с FunPay...");
-                var stats = await _core.FetchStatsAsync();
-
-                if (stats != null)
-                {
-                    _currentStats = stats;
-                    UpdateStatsDisplay(stats);
-                    if (LastUpdateText != null) LastUpdateText.Text = $"Обновлено: {DateTime.Now:HH:mm:ss}";
-                    if (PluginStatus != null) PluginStatus.Text = "OK";
-                    
-                    // Показываем в логе, сколько заказов просканировано
-                    int count = stats.ContainsKey("totalOrdersParsed") ? (int)stats["totalOrdersParsed"] : 0;
-                    AppendLog($"[SUCCESS] Обработано заказов: {count}");
-                }
+                AppendLog("[SUCCESS] Баланс обновлен", Brushes.LightGreen);
+                SetStatus("OK", Brushes.LightGreen);
             }
             catch (Exception ex)
             {
-                AppendLog($"[ERR] {ex.Message}");
-                if (PluginStatus != null) PluginStatus.Text = "Error";
+                AppendLog($"[ERR] Ошибка: {ex.Message}", Brushes.IndianRed);
+                SetStatus("Ошибка", Brushes.IndianRed);
             }
             finally
             {
-                _isLoading = false;
+                QuickRefreshButton.IsEnabled = true;
             }
         }
 
-        private void UpdateStatsDisplay(Dictionary<string, object> data)
+        private async Task RefreshStats()
         {
-            if (StatsGrid == null) return;
-            StatsGrid.Children.Clear();
-            StatsGrid.RowDefinitions.Clear();
+            try
+            {
+                if (QuickRefreshButton != null) QuickRefreshButton.IsEnabled = false;
+                SetStatus("Загрузка...", Brushes.Yellow);
+                
+                var stats = await _core.GetStatsAsync();
+                _currentStats = stats;
+                UpdateStatsDisplay(stats);
+                
+                if (LastUpdateText != null)
+                    LastUpdateText.Text = $"Обновлено: {DateTime.Now:HH:mm:ss}";
+                
+                SetStatus("OK", Brushes.LightGreen);
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"[ERR] {ex.Message}", Brushes.IndianRed);
+                SetStatus("Ошибка", Brushes.IndianRed);
+            }
+            finally
+            {
+                if (QuickRefreshButton != null) QuickRefreshButton.IsEnabled = true;
+            }
+        }
 
-            // Баланс
-            if (data.ContainsKey("canWithdraw") && data["canWithdraw"] is Dictionary<string, string> balance)
+        private void UpdateStatsDisplay(Dictionary<string, object> stats)
+        {
+            if (stats.ContainsKey("canWithdraw") && stats["canWithdraw"] is Dictionary<string, string> balance)
             {
                 if (NowValue != null) NowValue.Text = balance.GetValueOrDefault("now", "0 ₽");
                 if (RubValue != null) RubValue.Text = balance.GetValueOrDefault("RUB", "0 ₽");
@@ -180,85 +166,146 @@ namespace FPBooster.Plugins
                 if (EurValue != null) EurValue.Text = balance.GetValueOrDefault("EUR", "0 €");
             }
 
-            // Таблица
-            var sales = data["sales"] as Dictionary<string, object>;
-            var salesPrice = data["salesPrice"] as Dictionary<string, object>;
-            var refunds = data["refunds"] as Dictionary<string, object>;
-            var refundsPrice = data["refundsPrice"] as Dictionary<string, object>;
+            if (StatsContainer == null) return;
+            StatsContainer.Children.Clear();
 
-            string[] periods = { "day", "week", "month", "all" };
-            string[] periodNames = { "Сегодня", "Неделя", "Месяц", "Все время" };
+            var sales = stats["sales"] as Dictionary<string, object>;
+            var refunds = stats["refunds"] as Dictionary<string, object>;
+            var salesPrice = stats["salesPrice"] as Dictionary<string, object>;
+            var refundsPrice = stats["refundsPrice"] as Dictionary<string, object>;
 
-            for (int i = 0; i < periods.Length; i++)
+            foreach (var p in _periods)
             {
-                var key = periods[i];
-                StatsGrid.RowDefinitions.Add(new System.Windows.Controls.RowDefinition { Height = GridLength.Auto });
-
-                AddCell(i, 0, periodNames[i], MediaBrushes.Gray, FontWeights.Normal);
-                
-                var sCount = sales != null && sales.ContainsKey(key) ? sales[key].ToString() : "0";
-                AddCell(i, 1, sCount, MediaBrushes.LightGreen, FontWeights.Bold, WpfHorizontalAlignment.Center);
-
-                var sPriceStr = FormatPrice(salesPrice, key);
-                AddCell(i, 2, sPriceStr, MediaBrushes.White, FontWeights.Normal, WpfHorizontalAlignment.Right);
-
-                var rCount = refunds != null && refunds.ContainsKey(key) ? refunds[key].ToString() : "0";
-                var colRef = rCount == "0" ? MediaBrushes.Gray : MediaBrushes.IndianRed;
-                AddCell(i, 3, rCount, colRef, FontWeights.Bold, WpfHorizontalAlignment.Center);
-
-                var rPriceStr = FormatPrice(refundsPrice, key);
-                AddCell(i, 4, rPriceStr, colRef, FontWeights.Normal, WpfHorizontalAlignment.Right);
+                var card = CreateStatCard(p.Label, p.Key, sales, refunds, salesPrice, refundsPrice);
+                StatsContainer.Children.Add(card);
             }
         }
 
-        private string FormatPrice(Dictionary<string, object>? prices, string period)
+        private Border CreateStatCard(string title, string key, 
+            Dictionary<string, object> sales, Dictionary<string, object> refunds,
+            Dictionary<string, object> salesPrice, Dictionary<string, object> refundsPrice)
         {
-            if (prices == null) return "0 ₽";
-            List<string> parts = new List<string>();
-            
-            decimal rub = prices.ContainsKey($"{period}_₽") ? (decimal)prices[$"{period}_₽"] : 0;
-            decimal usd = prices.ContainsKey($"{period}_$") ? (decimal)prices[$"{period}_$"] : 0;
-            decimal eur = prices.ContainsKey($"{period}_€") ? (decimal)prices[$"{period}_€"] : 0;
+            var countSale = sales != null && sales.ContainsKey(key) ? sales[key].ToString() : "0";
+            var countRefund = refunds != null && refunds.ContainsKey(key) ? refunds[key].ToString() : "0";
 
-            if (rub > 0) parts.Add($"{rub:N0} ₽");
-            if (usd > 0) parts.Add($"{usd:N2} $");
-            if (eur > 0) parts.Add($"{eur:N2} €");
-
-            if (parts.Count == 0) return "0 ₽";
-            return string.Join(" + ", parts);
-        }
-
-        private void AddCell(int row, int col, string text, MediaBrush color, FontWeight weight, WpfHorizontalAlignment align = WpfHorizontalAlignment.Left)
-        {
-            var txt = new TextBlock
+            var card = new Border
             {
-                Text = text, Foreground = color, FontWeight = weight, FontSize = 13,
-                VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = align,
-                Margin = new Thickness(0, 4, 0, 4)
+                Style = (Style)FindResource("PluginCard"),
+                Margin = new Thickness(0, 0, 15, 15),
+                Width = 230, // Чуть шире для красоты
+                MinHeight = 130
             };
-            if (col == 2 || col == 4) txt.FontFamily = new FontFamily("Consolas");
+
+            var stack = new StackPanel();
             
-            Grid.SetRow(txt, row);
-            Grid.SetColumn(txt, col);
-            StatsGrid.Children.Add(txt);
+            // Заголовок карточки с легким неоном
+            var headerBlock = new TextBlock 
+            { 
+                Text = title, 
+                FontWeight = FontWeights.Bold, 
+                FontSize = 16,
+                Foreground = (Brush)FindResource("BrushText"),
+                Margin = new Thickness(0,0,0,15)
+            };
+            // Неон для заголовков карточек (слабый)
+            headerBlock.Effect = new DropShadowEffect { Color = Colors.Black, BlurRadius = 10, ShadowDepth = 0, Opacity = 0.2 };
+            
+            stack.Children.Add(headerBlock);
+
+            stack.Children.Add(CreateRow("Продажи:", countSale, Brushes.LightGreen, salesPrice, key));
+            stack.Children.Add(new Border { Height = 8 });
+            stack.Children.Add(CreateRow("Возвраты:", countRefund, Brushes.IndianRed, refundsPrice, key));
+
+            card.Child = stack;
+            return card;
         }
 
-        private void AppendLog(string msg)
+        private UIElement CreateRow(string label, string count, Brush color, Dictionary<string, object> prices, string key)
         {
-            if (_sharedLog == null) return;
-            MediaBrush color = MediaBrushes.White;
-            if (msg.Contains("[ERR]")) color = MediaBrushes.IndianRed;
-            else if (msg.Contains("[INFO]")) color = MediaBrushes.LightSkyBlue;
-            else if (msg.Contains("[SUCCESS]")) color = MediaBrushes.LightGreen;
-
-            WpfApplication.Current.Dispatcher.Invoke(() =>
-            {
-                _sharedLog.Insert(0, new FPBooster.MainWindow.LogEntry 
-                { 
-                    Text = $"[{DateTime.Now:HH:mm:ss}] [Stats] {msg}", 
-                    Color = color 
-                });
+            var panel = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
+            
+            panel.Children.Add(new TextBlock 
+            { 
+                Text = label, 
+                Width = 70, 
+                Foreground = (Brush)FindResource("BrushSubText"),
+                VerticalAlignment = VerticalAlignment.Center
             });
+            
+            var countText = new TextBlock 
+            { 
+                Text = count, 
+                FontWeight = FontWeights.Bold, 
+                Foreground = color,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            // Неон для цифр
+            countText.Effect = new DropShadowEffect { Color = ((SolidColorBrush)color).Color, BlurRadius = 8, ShadowDepth = 0, Opacity = 0.4 };
+            
+            DockPanel.SetDock(countText, Dock.Left);
+            panel.Children.Add(countText);
+
+            string priceStr = "";
+            if (prices != null)
+            {
+                foreach(var k in prices.Keys)
+                {
+                    if (k.StartsWith(key + "_"))
+                    {
+                        string curr = k.Split('_')[1];
+                        string val = prices[k].ToString();
+                        priceStr += $"{val:F0}{curr} ";
+                    }
+                }
+            }
+            
+            if (!string.IsNullOrEmpty(priceStr))
+            {
+                var priceBlock = new TextBlock 
+                { 
+                    Text = priceStr, 
+                    FontSize = 11, 
+                    Foreground = (Brush)FindResource("BrushSubText"), 
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                DockPanel.SetDock(priceBlock, Dock.Right);
+                panel.Children.Add(priceBlock);
+            }
+
+            return panel;
+        }
+
+        private void AppendLog(string msg, Brush? color = null)
+        {
+            var c = color ?? Brushes.White;
+            var time = DateTime.Now.ToString("HH:mm:ss");
+            var entry = new FPBooster.MainWindow.LogEntry { Text = $"[{time}] {msg}", Color = c };
+
+            Dispatcher.Invoke(() => 
+            {
+                _localLog.Insert(0, entry);
+                if (_localLog.Count > 100) _localLog.RemoveAt(_localLog.Count - 1);
+
+                if (_sharedLog != null)
+                {
+                    _sharedLog.Add(new FPBooster.MainWindow.LogEntry { Text = $"[STAT] {msg}", Color = c });
+                }
+            });
+        }
+        
+        private void OnClearPluginLog(object sender, RoutedEventArgs e)
+        {
+             _localLog.Clear();
+        }
+
+        private void SetStatus(string text, Brush color)
+        {
+            if (PluginStatus != null)
+            {
+                PluginStatus.Text = text;
+                PluginStatus.Foreground = color;
+            }
         }
     }
 }

@@ -3,7 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+             mc:Ignorable="d"
+             d:DesignWidth="1100" d:DesignHeight="600"
+             HorizontalAlignment="Stretch" 
+             VerticalAlignment="Stretch"
+             FontFamily="Segoe UI" FontSize="14" 
              Background="Transparent">
 
     <UserControl.Resources>
@@ -15,121 +19,213 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Color="#44000000" Direction="270"/>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Color="#33000000" Direction="270"/>
                 </Setter.Value>
             </Setter>
         </Style>
-        
-        <Style x:Key="PluginButton" TargetType="Button">
-            <Setter Property="Background" Value="#33FFFFFF"/>
+
+        <Style x:Key="PluginAnimatedButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource BrushAccent}"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="8" Padding="15,8"
+                                BorderBrush="{DynamicResource BrushBorder}" BorderThickness="0">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect Color="{DynamicResource ColorAccent}" BlurRadius="15" ShadowDepth="0" Opacity="0.8"/>
+                        </Setter.Value>
+                    </Setter>
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1.05" Duration="0:0:0.2"/>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1.05" Duration="0:0:0.2"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" To="1" Duration="0:0:0.2"/>
+                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" To="1" Duration="0:0:0.2"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.6"/>
+                    <Setter Property="Effect" Value="{x:Null}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PluginSecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushSubText}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#11FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="TransparentListBox" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden"/>
         </Style>
     </UserControl.Resources>
 
-    <Grid>
+    <Grid Margin="20">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="650"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>    <ColumnDefinition Width="20"/>   <ColumnDefinition Width="320"/>  </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Style="{StaticResource PluginCard}" Margin="10">
-            <Grid>
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0" Margin="0,0,0,25" LastChildFill="False">
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <TextBlock Text="Статистика Профиля" 
+                               FontSize="26" FontWeight="Bold" 
+                               Foreground="{DynamicResource BrushText}">
+                        <TextBlock.Effect>
+                            <DropShadowEffect Color="{DynamicResource ColorAccent}" BlurRadius="15" ShadowDepth="0" Opacity="0.4"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                    
+                    <Border Background="#15FFFFFF" CornerRadius="6" Padding="8,4" Margin="15,0,0,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="PluginStatus" Text="Wait" Foreground="{DynamicResource BrushSubText}" FontSize="12" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="LastUpdateText" 
+                               Text="Обновлено: --:--" 
+                               Foreground="{DynamicResource BrushSubText}" 
+                               VerticalAlignment="Center" Margin="0,0,20,0" FontSize="12"/>
+
+                    <Button x:Name="QuickRefreshButton" 
+                            Content="🔄 Обновить баланс"
+                            Style="{StaticResource PluginAnimatedButton}"
+                            Click="QuickRefreshButton_Click"/>
+                </StackPanel>
+            </DockPanel>
+
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0">
+                <StackPanel>
+                    
+                    <Border Style="{StaticResource PluginCard}" Margin="0,0,0,25" Background="{DynamicResource BrushPanel}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="ОБЩИЙ БАЛАНС (ПРИМЕРНО)" Foreground="{DynamicResource BrushSubText}" FontSize="11" FontWeight="Bold" Opacity="0.7" Margin="0,0,0,5"/>
+                                <TextBlock x:Name="NowValue" Text="0 ₽" Foreground="{DynamicResource BrushText}" FontSize="42" FontWeight="Black" FontFamily="Segoe UI">
+                                    <TextBlock.Effect>
+                                        <DropShadowEffect Color="White" BlurRadius="20" ShadowDepth="0" Opacity="0.6"/>
+                                    </TextBlock.Effect>
+                                </TextBlock>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Background="#1100FF00" CornerRadius="10" Padding="15,10" Margin="8,0" BorderBrush="#3300FF00" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="RUB" Foreground="{DynamicResource BrushSubText}" FontSize="10" HorizontalAlignment="Center" Opacity="0.8"/>
+                                        <TextBlock x:Name="RubValue" Text="0 ₽" Foreground="#FF69F0AE" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center">
+                                            <TextBlock.Effect>
+                                                <DropShadowEffect Color="#FF69F0AE" BlurRadius="10" ShadowDepth="0" Opacity="0.5"/>
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#1100BFFF" CornerRadius="10" Padding="15,10" Margin="8,0" BorderBrush="#3300BFFF" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="USD" Foreground="{DynamicResource BrushSubText}" FontSize="10" HorizontalAlignment="Center" Opacity="0.8"/>
+                                        <TextBlock x:Name="UsdValue" Text="0 $" Foreground="#FF40C4FF" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center">
+                                            <TextBlock.Effect>
+                                                <DropShadowEffect Color="#FF40C4FF" BlurRadius="10" ShadowDepth="0" Opacity="0.5"/>
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#11FFD700" CornerRadius="10" Padding="15,10" Margin="8,0" BorderBrush="#33FFD700" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="EUR" Foreground="{DynamicResource BrushSubText}" FontSize="10" HorizontalAlignment="Center" Opacity="0.8"/>
+                                        <TextBlock x:Name="EurValue" Text="0 €" Foreground="#FFFFD740" FontWeight="Bold" FontSize="16" HorizontalAlignment="Center">
+                                            <TextBlock.Effect>
+                                                <DropShadowEffect Color="#FFFFD740" BlurRadius="10" ShadowDepth="0" Opacity="0.5"/>
+                                            </TextBlock.Effect>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <WrapPanel x:Name="StatsContainer" Orientation="Horizontal"/>
+                    
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <Border Grid.Column="2" Style="{StaticResource PluginCard}" Padding="0">
+            <Grid Margin="15">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <DockPanel Grid.Row="0" Margin="0,0,0,15">
-                    <StackPanel>
-                        <TextBlock Text="📊 Статистика профиля" Foreground="{DynamicResource BrushAccentLight}" FontSize="20" FontWeight="Bold"/>
-                        <TextBlock x:Name="LastUpdateText" Text="Ожидание..." Foreground="{DynamicResource BrushSubText}" FontSize="10"/>
-                    </StackPanel>
-                    <TextBlock x:Name="PluginStatus" Text="Wait" Foreground="Gray" DockPanel.Dock="Right" VerticalAlignment="Top"/>
+                <DockPanel Grid.Row="0" Margin="0,0,0,15" LastChildFill="False">
+                    <TextBlock Text="Журнал событий" Foreground="{DynamicResource BrushText}" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                    <Button Content="Очистить" Width="70" Height="24" 
+                            DockPanel.Dock="Right"
+                            Click="OnClearPluginLog"
+                            Style="{StaticResource PluginSecondaryButton}" FontSize="11"/>
                 </DockPanel>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <Border Background="{DynamicResource BrushPanelAlt}" CornerRadius="8" Padding="15" Margin="0,0,0,15">
-                            <StackPanel>
-                                <Grid>
-                                    <StackPanel>
-                                        <TextBlock Text="Общий баланс (RUB)" Foreground="Gray" FontSize="10"/>
-                                        <TextBlock x:Name="NowValue" Text="0 ₽" Foreground="White" FontSize="26" FontWeight="Black"/>
-                                    </StackPanel>
-                                    <Button x:Name="QuickRefreshButton" Content="🔄" HorizontalAlignment="Right" VerticalAlignment="Top" 
-                                            Width="30" Height="30" Click="QuickRefreshButton_Click" Style="{StaticResource PluginButton}"/>
-                                </Grid>
-                                <UniformGrid Columns="3" Margin="0,10,0,0">
-                                    <StackPanel>
-                                        <TextBlock Text="RUB" Foreground="Gray" FontSize="9"/>
-                                        <TextBlock x:Name="RubValue" Text="0 ₽" Foreground="LightGreen" FontWeight="Bold"/>
-                                    </StackPanel>
-                                    <StackPanel>
-                                        <TextBlock Text="USD" Foreground="Gray" FontSize="9"/>
-                                        <TextBlock x:Name="UsdValue" Text="0 $" Foreground="LightBlue" FontWeight="Bold"/>
-                                    </StackPanel>
-                                    <StackPanel>
-                                        <TextBlock Text="EUR" Foreground="Gray" FontSize="9"/>
-                                        <TextBlock x:Name="EurValue" Text="0 €" Foreground="LightYellow" FontWeight="Bold"/>
-                                    </StackPanel>
-                                </UniformGrid>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Background="{DynamicResource BrushPanelAlt}" CornerRadius="8" Padding="15">
-                            <StackPanel>
-                                <DockPanel Margin="0,0,0,10">
-                                    <TextBlock Text="Продажи" FontWeight="Bold" Foreground="White"/>
-                                    <Button x:Name="RefreshButton" Content="🔄 Обновить всё" DockPanel.Dock="Right" Click="RefreshButton_Click" Style="{StaticResource PluginButton}"/>
-                                </DockPanel>
-                                
-                                <Grid x:Name="StatsGrid">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="90"/>
-                                        <ColumnDefinition Width="70"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="70"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </Grid>
-        </Border>
-
-        <Border Grid.Column="1" Style="{StaticResource PluginCard}" Margin="10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <DockPanel Margin="0,0,0,10">
-                    <TextBlock Text="📋 Лог" Foreground="White" FontWeight="Bold"/>
-                    <TextBlock x:Name="LogCounter" Text="0" Foreground="Gray" DockPanel.Dock="Right" Margin="5,0"/>
-                    <Button Content="Очистить" DockPanel.Dock="Right" Click="OnClearPluginLog" Style="{StaticResource PluginButton}"/>
-                </DockPanel>
-                
-                <ListBox x:Name="PluginLog" Grid.Row="1" Background="Transparent" BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" TextWrapping="Wrap" FontSize="11"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                <Border Grid.Row="1" Background="#15000000" CornerRadius="8" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
+                    <ListBox x:Name="PluginLogListBox" Style="{StaticResource TransparentListBox}" Padding="8">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" TextWrapping="Wrap" FontSize="11" Margin="0,3" FontFamily="Consolas"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
             </Grid>
         </Border>
     </Grid>
