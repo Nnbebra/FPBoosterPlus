@@ -78,7 +78,6 @@
             <Setter Property="Foreground" Value="{DynamicResource BrushSubText}"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Margin" Value="0,0,0,3"/>
         </Style>
         
         <Style x:Key="StatValue" TargetType="TextBlock">
@@ -91,12 +90,16 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="600" /> <ColumnDefinition Width="*" MinWidth="400" /> </Grid.ColumnDefinitions>
+            <ColumnDefinition Width="600" /> 
+            <ColumnDefinition Width="*" MinWidth="675" /> 
+        </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Style="{StaticResource PluginCard}" Margin="10,10,5,10">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/> <RowDefinition Height="*"/>    </Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> 
+                    <RowDefinition Height="*"/>  
+                </Grid.RowDefinitions>
 
                 <DockPanel Grid.Row="0" Margin="0,0,0,15" LastChildFill="False">
                     <StackPanel DockPanel.Dock="Left">
@@ -203,84 +206,10 @@
                                             DockPanel.Dock="Right"/>
                                 </DockPanel>
 
-                                <Grid Margin="0,0,0,10">
+                                <Grid x:Name="StatsGrid" HorizontalAlignment="Stretch">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="90"/> <ColumnDefinition Width="70"/> <ColumnDefinition Width="*"/>  <ColumnDefinition Width="70"/> <ColumnDefinition Width="*"/>  </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="ПЕРИОД" Style="{StaticResource StatLabel}"/>
-                                    <TextBlock Grid.Column="1" Text="ПРОДАЖИ" Style="{StaticResource StatLabel}" HorizontalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" Text="СУММА" Style="{StaticResource StatLabel}" HorizontalAlignment="Right"/>
-                                    <TextBlock Grid.Column="3" Text="ОТМЕНЫ" Style="{StaticResource StatLabel}" Foreground="#FF6B6B" HorizontalAlignment="Center"/>
-                                    <TextBlock Grid.Column="4" Text="СУММА" Style="{StaticResource StatLabel}" Foreground="#FF6B6B" HorizontalAlignment="Right"/>
+                                        <ColumnDefinition Width="90"/>  <ColumnDefinition Width="70"/>  <ColumnDefinition Width="*"/>   <ColumnDefinition Width="70"/>  <ColumnDefinition Width="*"/>   </Grid.ColumnDefinitions>
                                 </Grid>
-
-                                <Border Background="#08FFFFFF" CornerRadius="6" Padding="8,6" Margin="0,0,0,5">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="90"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Сегодня" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" x:Name="SalesDay" Text="0" Foreground="LightGreen" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="2" x:Name="SumDay" Text="0 ₽" Foreground="White" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                        <TextBlock Grid.Column="3" x:Name="RefDay" Text="0" Foreground="#FF6B6B" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                        <TextBlock Grid.Column="4" x:Name="RefSumDay" Text="0 ₽" Foreground="#FFAAAA" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                    </Grid>
-                                </Border>
-
-                                <Border Background="Transparent" Padding="8,6" Margin="0,0,0,5">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="90"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Неделя" Foreground="Gray" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" x:Name="SalesWeek" Text="0" Foreground="LightGreen" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" x:Name="SumWeek" Text="0 ₽" Foreground="Gray" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                        <TextBlock Grid.Column="3" x:Name="RefWeek" Text="0" Foreground="#FF6B6B" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="4" x:Name="RefSumWeek" Text="0 ₽" Foreground="#FFAAAA" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                    </Grid>
-                                </Border>
-
-                                <Border Background="Transparent" Padding="8,6" Margin="0,0,0,5">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="90"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="Месяц" Foreground="Gray" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" x:Name="SalesMonth" Text="0" Foreground="LightGreen" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" x:Name="SumMonth" Text="0 ₽" Foreground="Gray" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                        <TextBlock Grid.Column="3" x:Name="RefMonth" Text="0" Foreground="#FF6B6B" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="4" x:Name="RefSumMonth" Text="0 ₽" Foreground="#FFAAAA" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                    </Grid>
-                                </Border>
-
-                                <Border Background="#10FFFFFF" CornerRadius="6" Padding="8,6">
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="90"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="70"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0" Text="ВСЕГО" Foreground="{DynamicResource BrushAccentLight}" FontWeight="Black" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" x:Name="SalesAll" Text="0" Foreground="LightGreen" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" x:Name="SumAll" Text="0 ₽" Foreground="White" FontWeight="Bold" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                        <TextBlock Grid.Column="3" x:Name="RefAll" Text="0" Foreground="#FF6B6B" FontWeight="Bold" HorizontalAlignment="Center"/>
-                                        <TextBlock Grid.Column="4" x:Name="RefSumAll" Text="0 ₽" Foreground="#FFAAAA" FontWeight="Bold" HorizontalAlignment="Right" FontFamily="Consolas"/>
-                                    </Grid>
-                                </Border>
-
                             </StackPanel>
                         </Border>
                     </StackPanel>

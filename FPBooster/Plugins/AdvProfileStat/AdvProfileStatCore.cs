@@ -7,7 +7,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FPBooster.FunPay;
-using HtmlDocument = HtmlAgilityPack.HtmlDocument;
 
 namespace FPBooster.Plugins
 {
