@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using FPBooster.FunPay;
@@ -13,12 +11,11 @@ namespace FPBooster.Plugins
     public class AdvProfileStatCore
     {
         private HttpClient _client;
-        private static readonly string AppDataDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "FPBooster");
-        private static readonly string StoreFile = Path.Combine(AppDataDir, "adv_profile_stat.json");
-
         private bool _useRealData = false;
+        
+        // Примерные курсы (для верхней цифры общего баланса)
+        private const decimal UsdRate = 93m;
+        private const decimal EurRate = 101m;
 
         public AdvProfileStatCore(HttpClient client)
         {
@@ -26,228 +23,113 @@ namespace FPBooster.Plugins
         }
 
         public void SetHttpClient(HttpClient client) => _client = client;
-        public void SetUseRealData(bool useRealData) => _useRealData = useRealData;
+        public void SetUseRealData(bool use) => _useRealData = use;
 
-        private Dictionary<string, object> LoadEvents()
+        public async Task<Dictionary<string, object>> FetchStatsAsync()
         {
-            try
-            {
-                if (!File.Exists(StoreFile)) return new Dictionary<string, object>();
-                var json = File.ReadAllText(StoreFile);
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.ValueKind != JsonValueKind.Object) return new Dictionary<string, object>();
-                var all = JsonElementToDictionary(doc.RootElement);
+            if (!_useRealData) return GetDemoStats();
 
-                var filtered = new Dictionary<string, object>(StringComparer.Ordinal);
-                var idRegex = new Regex(@"^\d+$");
-                foreach (var kv in all)
+            // 1. Грузим
+            var orders = await Stats.FetchOrdersAsync(_client);
+            var balances = await Stats.FetchBalancesAsync(_client);
+
+            // 2. Расчет общего баланса (парсим строки "100 ₽" в числа и складываем)
+            decimal totalRub = ParseMoney(balances["RUB"]) + 
+                               (ParseMoney(balances["USD"]) * UsdRate) + 
+                               (ParseMoney(balances["EUR"]) * EurRate);
+            
+            var balanceData = new Dictionary<string, string>
+            {
+                ["now"] = $"{totalRub:N0} ₽",
+                ["RUB"] = balances["RUB"],
+                ["USD"] = balances["USD"],
+                ["EUR"] = balances["EUR"]
+            };
+
+            // 3. Статистика
+            var sales = new Dictionary<string, int> { ["all"]=0, ["day"]=0, ["week"]=0, ["month"]=0 };
+            var refunds = new Dictionary<string, int> { ["all"]=0, ["day"]=0, ["week"]=0, ["month"]=0 };
+            var salesPrice = new Dictionary<string, decimal>();
+            var refundsPrice = new Dictionary<string, decimal>();
+
+            void AddSum(Dictionary<string, decimal> d, string p, string c, decimal v) 
+            { 
+                string k = $"{p}_{c}"; 
+                if(!d.ContainsKey(k)) d[k]=0; 
+                d[k]+=v; 
+            }
+
+            foreach (var o in orders)
+            {
+                // Пропускаем незавершенные (если не успех и не возврат)
+                if (!o.IsSuccess && !o.IsRefund) continue;
+
+                // Периоды
+                bool isDay = o.TimeAgo.TotalHours < 24;
+                bool isWeek = o.TimeAgo.TotalDays < 7;
+                bool isMonth = o.TimeAgo.TotalDays < 30;
+
+                if (o.IsSuccess)
                 {
-                    if (idRegex.IsMatch(kv.Key))
-                    {
-                        filtered[kv.Key] = kv.Value;
-                    }
+                    sales["all"]++; AddSum(salesPrice, "all", o.Currency, o.Price);
+                    if(isDay) { sales["day"]++; AddSum(salesPrice, "day", o.Currency, o.Price); }
+                    if(isWeek) { sales["week"]++; AddSum(salesPrice, "week", o.Currency, o.Price); }
+                    if(isMonth) { sales["month"]++; AddSum(salesPrice, "month", o.Currency, o.Price); }
                 }
-
-                return filtered;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[DEBUG] LoadEvents failed: {ex.Message}");
-                return new Dictionary<string, object>();
-            }
-        }
-
-        private Dictionary<string, object> JsonElementToDictionary(JsonElement el)
-        {
-            var result = new Dictionary<string, object>(StringComparer.Ordinal);
-            foreach (var prop in el.EnumerateObject())
-            {
-                result[prop.Name] = JsonElementToObject(prop.Value);
-            }
-            return result;
-        }
-
-        private object JsonElementToObject(JsonElement el)
-        {
-            switch (el.ValueKind)
-            {
-                case JsonValueKind.Object:
-                    return JsonElementToDictionary(el);
-                case JsonValueKind.Array:
-                    var list = new List<object>();
-                    foreach (var item in el.EnumerateArray())
-                        list.Add(JsonElementToObject(item));
-                    return list;
-                case JsonValueKind.String:
-                    return el.GetString() ?? "";
-                case JsonValueKind.Number:
-                    if (el.TryGetDecimal(out var dec)) return dec;
-                    if (el.TryGetInt64(out var l)) return l;
-                    return el.GetDouble();
-                case JsonValueKind.True:
-                    return true;
-                case JsonValueKind.False:
-                    return false;
-                default:
-                    return null!;
-            }
-        }
-
-        private void SaveEvents(Dictionary<string, object> events)
-        {
-            try
-            {
-                Directory.CreateDirectory(AppDataDir);
-                var options = new JsonSerializerOptions { WriteIndented = true };
-                var json = JsonSerializer.Serialize(events, options);
-                File.WriteAllText(StoreFile, json);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[DEBUG] SaveEvents failed: {ex.Message}");
-            }
-        }
-
-        public async Task<Dictionary<string, object>> GenerateAdvProfileAsync()
-        {
-            if (_useRealData)
-            {
-                try
+                else if (o.IsRefund)
                 {
-                    var (orders, canWithdraw) = await FPBooster.FunPay.Stats.FetchRecentOrdersAsync(_client, 3);
-                    
-                    if (orders != null)
-                    {
-                        return ProcessRealData(orders, canWithdraw);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[ERROR] Failed to get real data: {ex.Message}");
+                    refunds["all"]++; AddSum(refundsPrice, "all", o.Currency, o.Price);
+                    if(isDay) { refunds["day"]++; AddSum(refundsPrice, "day", o.Currency, o.Price); }
+                    if(isWeek) { refunds["week"]++; AddSum(refundsPrice, "week", o.Currency, o.Price); }
+                    if(isMonth) { refunds["month"]++; AddSum(refundsPrice, "month", o.Currency, o.Price); }
                 }
             }
-            // Исправление CS1998: оборачиваем синхронный результат в Task
-            return await Task.FromResult(GenerateDemoData());
-        }
 
-        private Dictionary<string, object> ProcessRealData(List<FPBooster.FunPay.OrderItem> orders, Dictionary<string, string> canWithdraw)
-        {
-            try
+            // Добавляем список заказов для дебага (опционально)
+            return new Dictionary<string, object>
             {
-                var ((sales, refunds), (salesPrice, refundsPrice)) = FPBooster.FunPay.Stats.BucketByPeriod(orders);
-                
-                var events = LoadEvents();
-                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-                foreach (var order in orders)
-                {
-                    if (!string.IsNullOrEmpty(order.OrderId))
-                    {
-                        if (!events.ContainsKey(order.OrderId))
-                        {
-                            events[order.OrderId] = new Dictionary<string, object>
-                            {
-                                ["time"] = now,
-                                ["price"] = order.Price,
-                                ["currency"] = order.Currency
-                            };
-                        }
-                    }
-                }
-                
-                SaveEvents(events);
-
-                var result = new Dictionary<string, object>
-                {
-                    ["sales"] = new Dictionary<string, object> 
-                    { 
-                        ["day"] = sales["day"],
-                        ["week"] = sales["week"], 
-                        ["month"] = sales["month"],
-                        ["all"] = sales["all"] 
-                    },
-                    ["salesPrice"] = salesPrice.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value),
-                    ["refunds"] = new Dictionary<string, object> 
-                    { 
-                        ["day"] = refunds["day"],
-                        ["week"] = refunds["week"], 
-                        ["month"] = refunds["month"],
-                        ["all"] = refunds["all"] 
-                    },
-                    ["refundsPrice"] = refundsPrice.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value),
-                    ["canWithdraw"] = canWithdraw,
-                    ["dataSource"] = "real"
-                };
-
-                return result;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] ProcessRealData failed: {ex.Message}");
-                return GenerateDemoData();
-            }
+                ["canWithdraw"] = balanceData,
+                ["sales"] = sales,
+                ["salesPrice"] = salesPrice,
+                ["refunds"] = refunds,
+                ["refundsPrice"] = refundsPrice,
+                ["totalOrdersParsed"] = orders.Count
+            };
         }
 
         public async Task<Dictionary<string, string>> FetchQuickWithdrawAsync()
         {
-            if (_useRealData)
+            var b = await Stats.FetchBalancesAsync(_client);
+            decimal total = ParseMoney(b["RUB"]) + (ParseMoney(b["USD"]) * UsdRate) + (ParseMoney(b["EUR"]) * EurRate);
+            return new Dictionary<string, string>
             {
-                try
-                {
-                    var (_, canWithdraw) = await FPBooster.FunPay.Stats.FetchRecentOrdersAsync(_client, 1);
-                    return canWithdraw;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[ERROR] FetchQuickWithdrawAsync real data failed: {ex.Message}");
-                }
-            }
-
-            // Исправление CS1998
-            return await Task.FromResult(new Dictionary<string, string>
-            {
-                ["now"] = "12,450.50 ₽",
-                ["EUR"] = "112.05 €", 
-                ["RUB"] = "12,450.50 ₽",
-                ["USD"] = "137.50 $"
-            });
+                ["now"] = $"{total:N0} ₽",
+                ["RUB"] = b["RUB"],
+                ["USD"] = b["USD"],
+                ["EUR"] = b["EUR"]
+            };
         }
 
-        private Dictionary<string, object> GenerateDemoData()
+        private decimal ParseMoney(string raw)
         {
-            var demoOrders = new List<FPBooster.FunPay.OrderItem>
-            {
-                new FPBooster.FunPay.OrderItem { OrderId = "12345", Status = "Completed", Price = 1050.50m, Currency = "₽" },
-                new FPBooster.FunPay.OrderItem { OrderId = "12346", Status = "Completed", Price = 2500.00m, Currency = "₽" },
-                new FPBooster.FunPay.OrderItem { OrderId = "12347", Status = "Refunded", Price = 1500.00m, Currency = "₽" },
-                new FPBooster.FunPay.OrderItem { OrderId = "12348", Status = "Completed", Price = 25.00m, Currency = "$" },
-                new FPBooster.FunPay.OrderItem { OrderId = "12349", Status = "Completed", Price = 20.00m, Currency = "€" }
-            };
-            
-            var demoCanWithdraw = new Dictionary<string, string>
-            {
-                ["now"] = "12,450.50 ₽",
-                ["EUR"] = "112.05 €", 
-                ["RUB"] = "12,450.50 ₽",
-                ["USD"] = "137.50 $"
-            };
+            var clean = Regex.Replace(raw, @"[^\d.,]", "").Replace(" ", "");
+            if (decimal.TryParse(clean, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d)) return d;
+            if (decimal.TryParse(clean.Replace(".", ","), System.Globalization.NumberStyles.Any, new System.Globalization.CultureInfo("ru-RU"), out d)) return d;
+            return 0;
+        }
 
-            var ((sales, refunds), (salesPrice, refundsPrice)) = FPBooster.FunPay.Stats.BucketByPeriod(demoOrders);
-            
+        private Dictionary<string, object> GetDemoStats()
+        {
+            var sp = new Dictionary<string, decimal> { ["all_₽"] = 0 };
+            var rp = new Dictionary<string, decimal> { ["all_₽"] = 0 };
             return new Dictionary<string, object>
             {
-                ["sales"] = new Dictionary<string, object> 
-                { 
-                    ["day"] = sales["day"], ["week"] = sales["week"], ["month"] = sales["month"], ["all"] = sales["all"] 
-                },
-                ["salesPrice"] = salesPrice.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value),
-                ["refunds"] = new Dictionary<string, object> 
-                { 
-                    ["day"] = refunds["day"], ["week"] = refunds["week"], ["month"] = refunds["month"], ["all"] = refunds["all"] 
-                },
-                ["refundsPrice"] = refundsPrice.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value),
-                ["canWithdraw"] = demoCanWithdraw,
-                ["dataSource"] = "demo"
+                ["canWithdraw"] = new Dictionary<string, string> { ["now"]="ДЕМО", ["RUB"]="0", ["USD"]="0", ["EUR"]="0" },
+                ["sales"] = new Dictionary<string, int> { ["all"]=0, ["day"]=0, ["week"]=0, ["month"]=0 },
+                ["salesPrice"] = sp,
+                ["refunds"] = new Dictionary<string, int> { ["all"]=0, ["day"]=0, ["week"]=0, ["month"]=0 },
+                ["refundsPrice"] = rp,
+                ["totalOrdersParsed"] = 0
             };
         }
     }

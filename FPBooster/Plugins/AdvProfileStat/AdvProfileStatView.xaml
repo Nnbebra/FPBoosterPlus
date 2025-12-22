@@ -3,11 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d"
-             d:DesignWidth="1300" d:DesignHeight="600"
-             HorizontalAlignment="Stretch" 
-             VerticalAlignment="Stretch"
-             FontFamily="Segoe UI" FontSize="14" 
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
              Background="Transparent">
 
     <UserControl.Resources>
@@ -23,192 +19,90 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="PluginPrimaryButton" TargetType="Button">
+        
+        <Style x:Key="PluginButton" TargetType="Button">
+            <Setter Property="Background" Value="#33FFFFFF"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="{DynamicResource BrushAccentDeep}"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="12,8"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="10,5"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,2"/>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="B" Property="Opacity" Value="0.9"/>
-                                <Setter TargetName="B" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" Opacity="0.4"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="B" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98" CenterX="100" CenterY="20"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>
-
-        <Style x:Key="PluginSecondaryButton" TargetType="Button" BasedOn="{StaticResource PluginPrimaryButton}">
-            <Setter Property="Background" Value="#33FFFFFF"/>
-            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
-        </Style>
-
-        <Style x:Key="TransparentListBox" TargetType="ListBox">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-        </Style>
-        
-        <Style x:Key="StatLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource BrushSubText}"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-        </Style>
-        
-        <Style x:Key="StatValue" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="FontWeight" Value="Bold"/>
         </Style>
     </UserControl.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="600" /> 
-            <ColumnDefinition Width="*" MinWidth="675" /> 
+            <ColumnDefinition Width="650"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="0" Style="{StaticResource PluginCard}" Margin="10,10,5,10">
+        <Border Grid.Column="0" Style="{StaticResource PluginCard}" Margin="10">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/> 
-                    <RowDefinition Height="*"/>  
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <DockPanel Grid.Row="0" Margin="0,0,0,15" LastChildFill="False">
-                    <StackPanel DockPanel.Dock="Left">
-                        <TextBlock x:Name="PluginTitle" 
-                                   Text="📊 Статистика профиля"
-                                   Foreground="{DynamicResource BrushAccentLight}"
-                                   FontSize="20" 
-                                   FontWeight="Black">
-                             <TextBlock.Effect>
-                                 <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" ShadowDepth="0" Opacity="0.3"/>
-                             </TextBlock.Effect>
-                        </TextBlock>
-                        <TextBlock x:Name="LastUpdateText"
-                                   Text="Последнее обновление: —"
-                                   Foreground="{DynamicResource BrushSubText}"
-                                   FontSize="10"
-                                   Margin="0,4,0,0"/>
+                <DockPanel Grid.Row="0" Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="📊 Статистика профиля" Foreground="{DynamicResource BrushAccentLight}" FontSize="20" FontWeight="Bold"/>
+                        <TextBlock x:Name="LastUpdateText" Text="Ожидание..." Foreground="{DynamicResource BrushSubText}" FontSize="10"/>
                     </StackPanel>
-                    
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Top">
-                        <TextBlock Text="Status:" Foreground="{DynamicResource BrushSubText}" FontSize="11" Margin="0,0,4,0"/>
-                        <TextBlock x:Name="PluginStatus" Text="Wait" Foreground="#9CF2B2" FontSize="11" FontWeight="Bold"/>
-                    </StackPanel>
+                    <TextBlock x:Name="PluginStatus" Text="Wait" Foreground="Gray" DockPanel.Dock="Right" VerticalAlignment="Top"/>
                 </DockPanel>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,-10,0" Padding="0,0,10,0">
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        
-                        <Border Background="{DynamicResource BrushPanelAlt}" 
-                                CornerRadius="8" 
-                                Padding="15"
-                                BorderBrush="{DynamicResource BrushBorder}"
-                                BorderThickness="1"
-                                Margin="0,0,0,20">
+                        <Border Background="{DynamicResource BrushPanelAlt}" CornerRadius="8" Padding="15" Margin="0,0,0,15">
                             <StackPanel>
-                                <TextBlock Text="💳 Доступно к выводу"
-                                           Foreground="{DynamicResource BrushText}"
-                                           FontSize="14"
-                                           FontWeight="Bold"
-                                           Margin="0,0,0,15"/>
-
-                                <Grid Margin="0,0,0,20">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    
+                                <Grid>
                                     <StackPanel>
-                                        <TextBlock Text="Общий баланс (примерно)" Foreground="{DynamicResource BrushSubText}" FontSize="11"/>
-                                        <TextBlock x:Name="NowValue" 
-                                                   Text="0.00 ¤" 
-                                                   FontFamily="Consolas" 
-                                                   FontSize="24" 
-                                                   FontWeight="Black"
-                                                   Foreground="{DynamicResource BrushAccentLight}">
-                                            <TextBlock.Effect>
-                                                <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="15" ShadowDepth="0" Opacity="0.4"/>
-                                            </TextBlock.Effect>
-                                        </TextBlock>
+                                        <TextBlock Text="Общий баланс (RUB)" Foreground="Gray" FontSize="10"/>
+                                        <TextBlock x:Name="NowValue" Text="0 ₽" Foreground="White" FontSize="26" FontWeight="Black"/>
                                     </StackPanel>
-                                    
-                                    <Button x:Name="QuickRefreshButton"
-                                            Grid.Column="1"
-                                            Content="🔄 Обновить баланс" 
-                                            Click="QuickRefreshButton_Click"
-                                            Style="{StaticResource PluginSecondaryButton}"
-                                            FontSize="11" Height="32" VerticalAlignment="Bottom"/>
+                                    <Button x:Name="QuickRefreshButton" Content="🔄" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                                            Width="30" Height="30" Click="QuickRefreshButton_Click" Style="{StaticResource PluginButton}"/>
                                 </Grid>
-
-                                <UniformGrid Columns="3">
-                                    <StackPanel Margin="0,0,10,0">
-                                        <TextBlock Text="RUB" Style="{StaticResource StatLabel}"/>
-                                        <TextBlock x:Name="RubValue" Text="0 ₽" Style="{StaticResource StatValue}"/>
-                                    </StackPanel>
-                                    <StackPanel Margin="0,0,10,0">
-                                        <TextBlock Text="USD" Style="{StaticResource StatLabel}"/>
-                                        <TextBlock x:Name="UsdValue" Text="0 $" Style="{StaticResource StatValue}"/>
+                                <UniformGrid Columns="3" Margin="0,10,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="RUB" Foreground="Gray" FontSize="9"/>
+                                        <TextBlock x:Name="RubValue" Text="0 ₽" Foreground="LightGreen" FontWeight="Bold"/>
                                     </StackPanel>
                                     <StackPanel>
-                                        <TextBlock Text="EUR" Style="{StaticResource StatLabel}"/>
-                                        <TextBlock x:Name="EurValue" Text="0 €" Style="{StaticResource StatValue}"/>
+                                        <TextBlock Text="USD" Foreground="Gray" FontSize="9"/>
+                                        <TextBlock x:Name="UsdValue" Text="0 $" Foreground="LightBlue" FontWeight="Bold"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="EUR" Foreground="Gray" FontSize="9"/>
+                                        <TextBlock x:Name="EurValue" Text="0 €" Foreground="LightYellow" FontWeight="Bold"/>
                                     </StackPanel>
                                 </UniformGrid>
                             </StackPanel>
                         </Border>
 
-                        <Border Background="{DynamicResource BrushPanelAlt}" 
-                                CornerRadius="8" 
-                                Padding="15"
-                                BorderBrush="{DynamicResource BrushBorder}"
-                                BorderThickness="1">
+                        <Border Background="{DynamicResource BrushPanelAlt}" CornerRadius="8" Padding="15">
                             <StackPanel>
-                                <DockPanel LastChildFill="False" Margin="0,0,0,15">
-                                    <TextBlock Text="📈 Статистика продаж"
-                                               Foreground="{DynamicResource BrushText}"
-                                               FontSize="14"
-                                               FontWeight="Bold"
-                                               DockPanel.Dock="Left"/>
-                                    <Button x:Name="RefreshButton" 
-                                            Content="🔄 Полное обновление"
-                                            Click="RefreshButton_Click"
-                                            Style="{StaticResource PluginPrimaryButton}"
-                                            FontSize="11" Height="30"
-                                            DockPanel.Dock="Right"/>
+                                <DockPanel Margin="0,0,0,10">
+                                    <TextBlock Text="Продажи" FontWeight="Bold" Foreground="White"/>
+                                    <Button x:Name="RefreshButton" Content="🔄 Обновить всё" DockPanel.Dock="Right" Click="RefreshButton_Click" Style="{StaticResource PluginButton}"/>
                                 </DockPanel>
-
-                                <Grid x:Name="StatsGrid" HorizontalAlignment="Stretch">
+                                
+                                <Grid x:Name="StatsGrid">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="90"/>  <ColumnDefinition Width="70"/>  <ColumnDefinition Width="*"/>   <ColumnDefinition Width="70"/>  <ColumnDefinition Width="*"/>   </Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="70"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -217,54 +111,25 @@
             </Grid>
         </Border>
 
-        <Border Grid.Column="1" Style="{StaticResource PluginCard}" Margin="5,10,10,10">
+        <Border Grid.Column="1" Style="{StaticResource PluginCard}" Margin="10">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-
-                <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,10">
-                    <TextBlock Text="📋 Лог операций"
-                               Foreground="{DynamicResource BrushText}"
-                               FontSize="12"
-                               FontWeight="SemiBold"
-                               VerticalAlignment="Center"
-                               DockPanel.Dock="Left"/>
-                    
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                        <TextBlock x:Name="LogCounter" 
-                                   Text="0" 
-                                   Foreground="{DynamicResource BrushSubText}" 
-                                   FontSize="10"
-                                   Margin="0,0,8,0"
-                                   VerticalAlignment="Center"/>
-                        <Button Content="Очистить"
-                                Width="80" 
-                                Height="26"
-                                Click="OnClearPluginLog"
-                                Style="{StaticResource PluginSecondaryButton}"
-                                FontSize="11"/>
-                    </StackPanel>
+                <DockPanel Margin="0,0,0,10">
+                    <TextBlock Text="📋 Лог" Foreground="White" FontWeight="Bold"/>
+                    <TextBlock x:Name="LogCounter" Text="0" Foreground="Gray" DockPanel.Dock="Right" Margin="5,0"/>
+                    <Button Content="Очистить" DockPanel.Dock="Right" Click="OnClearPluginLog" Style="{StaticResource PluginButton}"/>
                 </DockPanel>
-
-                <Border Grid.Row="1" Height="1" Margin="0,0,0,10" Background="{DynamicResource BrushBorder}" Opacity="0.5"/>
-
-                <Border Grid.Row="2"
-                        CornerRadius="8"
-                        Background="#11000000">
-                    <ListBox x:Name="PluginLog"
-                             Style="{StaticResource TransparentListBox}"
-                             Padding="4"
-                             FontSize="11">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" TextWrapping="Wrap" Margin="0,2"/>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                </Border>
+                
+                <ListBox x:Name="PluginLog" Grid.Row="1" Background="Transparent" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Text}" Foreground="{Binding Color}" TextWrapping="Wrap" FontSize="11"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </Grid>
         </Border>
     </Grid>

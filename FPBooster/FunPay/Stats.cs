@@ -2,202 +2,159 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
+// Псевдоним
+using AgilityHtmlDocument = HtmlAgilityPack.HtmlDocument;
+
 namespace FPBooster.FunPay
 {
     public static class Stats
     {
-        /// <summary>
-        /// Получает заказы со страницы продаж и баланс со страницы финансов.
-        /// </summary>
-        public static async Task<(List<OrderItem> orders, Dictionary<string, string> canWithdraw)> FetchRecentOrdersAsync(HttpClient session, int maxPages = 1)
+        public static async Task<List<OrderItem>> FetchOrdersAsync(HttpClient client)
         {
             var orders = new List<OrderItem>();
-            var canWithdraw = new Dictionary<string, string>();
-            
-            // Инициализация безопасных значений
-            EnsureCanWithdrawKeys(canWithdraw);
-
             try
             {
-                // --- ШАГ 1: Получаем заказы (https://funpay.com/orders/trade) ---
-                var ordersUrl = "https://funpay.com/orders/trade";
-                var ordersResponse = await session.GetAsync(ordersUrl);
-                
-                if (ordersResponse.IsSuccessStatusCode)
-                {
-                    var html = await ordersResponse.Content.ReadAsStringAsync();
-                    var doc = new HtmlDocument();
-                    doc.LoadHtml(html);
+                var html = await client.GetStringAsync("https://funpay.com/orders/trade");
+                var doc = new AgilityHtmlDocument();
+                doc.LoadHtml(html);
 
-                    // Строки таблицы - это теги <a> с классом tc-item
-                    var rows = doc.DocumentNode.SelectNodes("//a[contains(@class, 'tc-item')]");
-                    
-                    if (rows != null)
+                // Ищем строки заказов
+                var items = doc.DocumentNode.SelectNodes("//a[contains(@class, 'tc-item')]");
+                if (items == null) return orders;
+
+                foreach (var item in items)
+                {
+                    try
                     {
-                        foreach (var row in rows)
-                        {
-                            try 
-                            {
-                                var item = ParseOrderRow(row);
-                                if (item != null) orders.Add(item);
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"[WARN] Ошибка парсинга строки заказа: {ex.Message}");
-                            }
-                        }
-                    }
-                }
-
-                // --- ШАГ 2: Получаем баланс (https://funpay.com/account/balance) ---
-                var balanceUrl = "https://funpay.com/account/balance";
-                var balanceResponse = await session.GetAsync(balanceUrl);
-
-                if (balanceResponse.IsSuccessStatusCode)
-                {
-                    var html = await balanceResponse.Content.ReadAsStringAsync();
-                    var doc = new HtmlDocument();
-                    doc.LoadHtml(html);
-                    
-                    ParseBalanceFromPage(doc, canWithdraw);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] FetchRecentOrdersAsync failed: {ex.Message}");
-            }
-
-            return (orders, canWithdraw);
-        }
-
-        private static void ParseBalanceFromPage(HtmlDocument doc, Dictionary<string, string> canWithdraw)
-        {
-            try
-            {
-                // Баланс лежит в <span class="balances-value">
-                var balanceNodes = doc.DocumentNode.SelectNodes("//span[contains(@class, 'balances-value')]");
-                
-                if (balanceNodes != null)
-                {
-                    foreach (var node in balanceNodes)
-                    {
-                        var text = node.InnerText.Trim(); // Пример: "0.26 €"
+                        var order = new OrderItem();
                         
-                        if (text.Contains("₽")) canWithdraw["RUB"] = text;
-                        else if (text.Contains("$")) canWithdraw["USD"] = text;
-                        else if (text.Contains("€")) canWithdraw["EUR"] = text;
+                        // --- 1. ID ЗАКАЗА ---
+                        var idNode = item.SelectSingleNode(".//div[contains(@class, 'tc-order')]");
+                        order.OrderId = idNode?.InnerText?.Trim().Replace("#", "") ?? "???";
+
+                        // --- 2. СТАТУС (ПО CSS КЛАССУ) ---
+                        // <div class="tc-status text-success">Закрыт</div>
+                        var statusNode = item.SelectSingleNode(".//div[contains(@class, 'tc-status')]");
+                        var statusClass = statusNode?.GetAttributeValue("class", "") ?? "";
+                        var statusText = statusNode?.InnerText?.Trim() ?? "";
+
+                        // Если есть класс text-success -> это продажа
+                        // Если есть класс text-warning или текст "Возврат" -> это возврат
+                        order.IsSuccess = statusClass.Contains("text-success") || statusText == "Закрыт" || statusText == "Оплачен";
+                        order.IsRefund = statusClass.Contains("text-warning") || statusText == "Возврат" || statusText == "Отменен";
+
+                        // --- 3. ЦЕНА ---
+                        // <div class="tc-price ...">0.07 <span class="unit">€</span></div>
+                        var priceNode = item.SelectSingleNode(".//div[contains(@class, 'tc-price')]");
+                        if (priceNode != null)
+                        {
+                            var rawHtml = priceNode.InnerHtml; // Берем HTML, чтобы найти span class="unit"
+                            var rawText = WebUtility.HtmlDecode(priceNode.InnerText).Trim(); // "0.07 €"
+
+                            // Определяем валюту
+                            if (rawText.Contains("€") || rawText.Contains("EUR")) order.Currency = "€";
+                            else if (rawText.Contains("$") || rawText.Contains("USD")) order.Currency = "$";
+                            else order.Currency = "₽";
+
+                            // Чистим цену: оставляем цифры, точку, запятую. Убираем пробелы (разделители тысяч).
+                            var cleanPrice = Regex.Replace(rawText, @"[^\d.,]", "").Replace(" ", "");
+                            
+                            // Парсим (FunPay может давать "100.00" или "100,00")
+                            if (!decimal.TryParse(cleanPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var p))
+                            {
+                                decimal.TryParse(cleanPrice.Replace(".", ","), NumberStyles.Any, new CultureInfo("ru-RU"), out p);
+                            }
+                            order.Price = p;
+                        }
+
+                        // --- 4. ДАТА (ВРЕМЯ НАЗАД) ---
+                        // <div class="tc-date-left">9 месяцев назад</div>
+                        var dateLeftNode = item.SelectSingleNode(".//div[contains(@class, 'tc-date-left')]");
+                        if (dateLeftNode != null)
+                        {
+                            order.TimeAgo = ParseRussianTimeAgo(dateLeftNode.InnerText.Trim());
+                        }
+                        else
+                        {
+                            order.TimeAgo = TimeSpan.FromDays(999); // Старый заказ
+                        }
+
+                        orders.Add(order);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return orders;
+        }
+
+        public static async Task<Dictionary<string, string>> FetchBalancesAsync(HttpClient client)
+        {
+            var balances = new Dictionary<string, string> { ["RUB"] = "0 ₽", ["USD"] = "0 $", ["EUR"] = "0 €" };
+            try
+            {
+                var html = await client.GetStringAsync("https://funpay.com/account/balance");
+                var doc = new AgilityHtmlDocument();
+                doc.LoadHtml(html);
+
+                var nodes = doc.DocumentNode.SelectNodes("//span[contains(@class, 'balances-value')]");
+                if (nodes != null)
+                {
+                    foreach (var n in nodes)
+                    {
+                        var t = WebUtility.HtmlDecode(n.InnerText).Trim();
+                        if (t.Contains("₽")) balances["RUB"] = t;
+                        else if (t.Contains("$")) balances["USD"] = t;
+                        else if (t.Contains("€")) balances["EUR"] = t;
                     }
                 }
-                
-                // Логика выбора основного баланса для отображения "Сейчас"
-                if (canWithdraw.ContainsKey("RUB") && canWithdraw["RUB"] != "0 ₽") canWithdraw["now"] = canWithdraw["RUB"];
-                else if (canWithdraw.ContainsKey("USD") && canWithdraw["USD"] != "0 $") canWithdraw["now"] = canWithdraw["USD"];
-                else if (canWithdraw.ContainsKey("EUR") && canWithdraw["EUR"] != "0 €") canWithdraw["now"] = canWithdraw["EUR"];
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[WARN] Ошибка парсинга баланса: {ex.Message}");
-            }
+            catch { }
+            return balances;
         }
 
-        private static OrderItem? ParseOrderRow(HtmlNode row)
+        private static TimeSpan ParseRussianTimeAgo(string text)
         {
-            var idNode = row.SelectSingleNode(".//div[contains(@class, 'tc-order')]");
-            var statusNode = row.SelectSingleNode(".//div[contains(@class, 'tc-status')]");
-            var priceNode = row.SelectSingleNode(".//div[contains(@class, 'tc-price')]");
-            var dateNode = row.SelectSingleNode(".//div[contains(@class, 'tc-date-time')]");
-
-            if (idNode == null || priceNode == null) return null;
-
-            var orderId = idNode.InnerText.Trim().Replace("#", "");
-            var status = statusNode?.InnerText.Trim() ?? "Unknown";
-            var date = dateNode?.InnerText.Trim() ?? "";
-
-            // Извлекаем текст цены
-            var priceRaw = priceNode.InnerText.Trim();
-            priceRaw = System.Net.WebUtility.HtmlDecode(priceRaw);
-
-            var currency = "¤";
-            if (priceRaw.Contains("₽") || priceRaw.Contains("RUB")) currency = "₽";
-            else if (priceRaw.Contains("$") || priceRaw.Contains("USD")) currency = "$";
-            else if (priceRaw.Contains("€") || priceRaw.Contains("EUR")) currency = "€";
-
-            // Оставляем только цифры, точки и запятые
-            var cleanPrice = Regex.Replace(priceRaw, @"[^\d.,]", "").Replace(",", ".");
-            if (cleanPrice.EndsWith(".")) cleanPrice = cleanPrice.TrimEnd('.');
-
-            decimal price = 0;
-            decimal.TryParse(cleanPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out price);
-
-            return new OrderItem
+            // text: "9 месяцев назад", "5 минут назад"
+            try
             {
-                OrderId = orderId,
-                Status = status,
-                Price = price,
-                Currency = currency,
-                Date = date
-            };
-        }
+                text = text.ToLower();
+                if (text.Contains("только") || text.Contains("сейчас")) return TimeSpan.Zero;
+                if (text.Contains("вчера")) return TimeSpan.FromDays(1);
 
-        private static void EnsureCanWithdrawKeys(Dictionary<string, string> canWithdraw)
-        {
-            if (!canWithdraw.ContainsKey("now")) canWithdraw["now"] = "0 ¤";
-            if (!canWithdraw.ContainsKey("EUR")) canWithdraw["EUR"] = "0 €";
-            if (!canWithdraw.ContainsKey("RUB")) canWithdraw["RUB"] = "0 ₽";
-            if (!canWithdraw.ContainsKey("USD")) canWithdraw["USD"] = "0 $";
-        }
-
-        public static ((Dictionary<string, int> sales, Dictionary<string, int> refunds), 
-                      (Dictionary<string, decimal> salesPrice, Dictionary<string, decimal> refundsPrice)) 
-                      BucketByPeriod(List<OrderItem> orders)
-        {
-            var sales = new Dictionary<string, int> { ["day"] = 0, ["week"] = 0, ["month"] = 0, ["all"] = 0 };
-            var refunds = new Dictionary<string, int> { ["day"] = 0, ["week"] = 0, ["month"] = 0, ["all"] = 0 };
-            var salesPrice = new Dictionary<string, decimal>();
-            var refundsPrice = new Dictionary<string, decimal>();
-
-            foreach (var order in orders)
-            {
-                var s = order.Status.ToLower();
-                bool isRefund = s.Contains("возврат") || s.Contains("refund") || s.Contains("отменен");
-                bool isCompleted = s.Contains("закрыт") || s.Contains("completed") || s.Contains("подтвержден") || s.Contains("оплачен");
-
-                if (!isRefund && !isCompleted) continue; 
-
-                if (isRefund)
+                var match = Regex.Match(text, @"(\d+)\s+([а-яa-z]+)");
+                if (match.Success)
                 {
-                    refunds["all"]++;
-                    AddToPrice(refundsPrice, "all", order.Currency, order.Price);
-                }
-                else
-                {
-                    sales["all"]++;
-                    AddToPrice(salesPrice, "all", order.Currency, order.Price);
+                    int val = int.Parse(match.Groups[1].Value);
+                    string unit = match.Groups[2].Value; 
+
+                    if (unit.StartsWith("сек") || unit.StartsWith("sec")) return TimeSpan.FromSeconds(val);
+                    if (unit.StartsWith("мин") || unit.StartsWith("min")) return TimeSpan.FromMinutes(val);
+                    if (unit.StartsWith("час") || unit.StartsWith("hour")) return TimeSpan.FromHours(val);
+                    if (unit.StartsWith("д") || unit.StartsWith("day") || unit.StartsWith("сутки")) return TimeSpan.FromDays(val);
+                    if (unit.StartsWith("нед") || unit.StartsWith("week")) return TimeSpan.FromDays(val * 7);
+                    if (unit.StartsWith("мес") || unit.StartsWith("mon")) return TimeSpan.FromDays(val * 30);
+                    if (unit.StartsWith("год") || unit.StartsWith("лет") || unit.StartsWith("year")) return TimeSpan.FromDays(val * 365);
                 }
             }
-
-            return ((sales, refunds), (salesPrice, refundsPrice));
-        }
-
-        private static void AddToPrice(Dictionary<string, decimal> dict, string period, string currency, decimal amount)
-        {
-            var key = $"{period}_{currency}";
-            if (!dict.ContainsKey(key)) dict[key] = 0;
-            dict[key] += amount;
+            catch { }
+            return TimeSpan.FromDays(365);
         }
     }
 
     public class OrderItem
     {
         public string OrderId { get; set; } = "";
-        public string Status { get; set; } = "";
+        public bool IsSuccess { get; set; } // Успешная продажа
+        public bool IsRefund { get; set; }  // Возврат
         public decimal Price { get; set; }
-        public string Currency { get; set; } = "";
-        public string Date { get; set; } = "";
+        public string Currency { get; set; } = "₽";
+        public TimeSpan TimeAgo { get; set; } = TimeSpan.Zero;
     }
 }
