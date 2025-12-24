@@ -192,12 +192,12 @@ namespace FPBooster
         private void GoldenKeyInput_Drop(object s, DragEventArgs e) { if(e.Data.GetDataPresent(System.Windows.DataFormats.Text)) GoldenKeyInput.Text = e.Data.GetData(System.Windows.DataFormats.Text) as string; }
         private void NodeList_Drop(object s, DragEventArgs e) => Window_Drop(s, e);
 
-        private void OnAboutClick(object s, RoutedEventArgs e) => ShowThemed("О программе", "FPBooster v1.4");
-        private void OnSupportClick(object s, RoutedEventArgs e) => ShowThemed("Поддержка", "@Manavoid_228");
-        private void OnUpdatesClick(object s, RoutedEventArgs e) => ShowThemed("Обновления", "Версия актуальна");
-        private void OnLicenseClick(object s, RoutedEventArgs e) => ShowThemed("Лицензия", "Лицензия активна");
+        private void OnAboutClick(object s, RoutedEventArgs e) => ShowThemed("О программе", "FPBooster Plus Cloud\n\nАвтор: @Manavoid_228\n\nВсе права защищены © 2024-2025");
+        private void OnSupportClick(object s, RoutedEventArgs e) => ShowThemed("Поддержка", "@Manavoid_228 в Telegram\n\nСпасибо за поддержку проекта!");
+        private void OnUpdatesClick(object s, RoutedEventArgs e) => ShowThemed("Обновления", "FPBooster Plus Cloud v1.0.0\n\nчейнджлог:\n- поддержка новых плагинов\n- улучшена стабильность\n- автоматизация процессов через серверное API");
+        private void OnLicenseClick(object s, RoutedEventArgs e) => ShowThemed("Лицензия", "Лицензия активна...");
         private void OnSettingsClick(object s, RoutedEventArgs e) => ShowThemed("Настройки", "В разработке");
-        private void OnAuthorClick(object s, RoutedEventArgs e) => ShowThemed("Автор", "@Manavoid_228");
+        private void OnAuthorClick(object s, RoutedEventArgs e) => ShowThemed("Поддержка автора", "В разработке");
 
         private void OpenAutoBump_Click(object s, RoutedEventArgs e) => UI.PluginsDialog.RunPlugin(this, "auto_bump");
         private void OpenLotsToggle_Click(object s, RoutedEventArgs e) => UI.PluginsDialog.RunPlugin(this, "lots_toggle");

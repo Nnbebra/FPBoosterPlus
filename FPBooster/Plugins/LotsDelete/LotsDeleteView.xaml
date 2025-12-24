@@ -33,64 +33,53 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
                         <Grid>
-                            <Border x:Name="Border" CornerRadius="10" BorderThickness="1" 
-                                    BorderBrush="{DynamicResource BrushBorder}"
-                                    Background="{DynamicResource BrushPanelAlt}">
+                            <Border x:Name="Border" CornerRadius="10" BorderThickness="1" BorderBrush="{DynamicResource BrushBorder}">
+                                <Border.Background>
+                                    <SolidColorBrush Color="{Binding Color, Source={StaticResource BrushPanelAlt}}" Opacity="0.5"/>
+                                </Border.Background>
+                                <Grid>
+                                    <ToggleButton x:Name="ToggleButton"
+                                                  IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                  Focusable="false" ClickMode="Press" Background="Transparent" BorderThickness="0"
+                                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Padding="{TemplateBinding Padding}">
+                                        <ToggleButton.Template>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Border Background="Transparent">
+                                                    <ContentPresenter x:Name="ContentSite" IsHitTestVisible="False" Margin="{TemplateBinding Padding}"
+                                                                      Content="{TemplateBinding Content}" 
+                                                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}">
+                                                         <ContentPresenter.Resources>
+                                                            <Style TargetType="TextBlock">
+                                                               <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+                                                            </Style>
+                                                         </ContentPresenter.Resources>
+                                                    </ContentPresenter>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </ToggleButton.Template>
+                                        <ToggleButton.Content>
+                                            <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}">
+                                                  <ContentPresenter.Resources>
+                                                     <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+                                                     </Style>
+                                                  </ContentPresenter.Resources>
+                                            </ContentPresenter>
+                                        </ToggleButton.Content>
+                                    </ToggleButton>
+                                    
+                                    <Path x:Name="Arrow" Data="M0,0 L8,0 L4,5 Z" Fill="{DynamicResource BrushSubText}" 
+                                          HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0" IsHitTestVisible="False"/>
+                                </Grid>
                             </Border>
-                            
-                            <Grid>
-                                <ToggleButton x:Name="ToggleButton"
-                                              IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                                              Focusable="false"
-                                              ClickMode="Press"
-                                              Background="Transparent"
-                                              BorderThickness="0"
-                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Padding="{TemplateBinding Padding}">
-                                    <ToggleButton.Template>
-                                        <ControlTemplate TargetType="ToggleButton">
-                                            <Border Background="Transparent">
-                                                <ContentPresenter x:Name="ContentSite"
-                                                                  IsHitTestVisible="False"
-                                                                  Margin="{TemplateBinding Padding}"
-                                                                  Content="{TemplateBinding Content}"
-                                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
-                                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}">
-                                                    <ContentPresenter.Resources>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
-                                                        </Style>
-                                                    </ContentPresenter.Resources>
-                                                </ContentPresenter>
-                                            </Border>
-                                        </ControlTemplate>
-                                    </ToggleButton.Template>
-                                    <ToggleButton.Content>
-                                        <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
-                                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}">
-                                            <ContentPresenter.Resources>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
-                                                </Style>
-                                            </ContentPresenter.Resources>
-                                        </ContentPresenter>
-                                    </ToggleButton.Content>
-                                </ToggleButton>
-                                <Path x:Name="Arrow" Data="M0,0 L8,0 L4,5 Z" Fill="{DynamicResource BrushSubText}" 
-                                      HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,15,0" IsHitTestVisible="False"/>
-                            </Grid>
-                            
                             <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
-                                <Border x:Name="DropDownBorder" 
-                                        Background="{DynamicResource BrushPanelAlt}" 
-                                        BorderThickness="1" 
-                                        BorderBrush="{DynamicResource BrushBorder}" 
-                                        CornerRadius="8" 
-                                        Margin="0,4,0,0"
-                                        MinWidth="{Binding ActualWidth, ElementName=Border}"
-                                        MaxHeight="250">
+                                <Border x:Name="DropDownBorder" Background="{DynamicResource BrushPanelAlt}" BorderThickness="1" BorderBrush="{DynamicResource BrushBorder}" 
+                                        CornerRadius="8" Margin="0,4,0,0" MinWidth="{Binding ActualWidth, ElementName=Border}" MaxHeight="250">
                                     <Border.Effect>
                                         <DropShadowEffect BlurRadius="10" Color="Black" Opacity="0.5"/>
                                     </Border.Effect>
@@ -107,7 +96,8 @@
                             </Trigger>
                             <Trigger Property="IsDropDownOpen" Value="True">
                                 <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource BrushAccentDeep}"/>
-                                </Trigger>
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource BrushPanelAlt}"/>
+                            </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5"/>
                             </Trigger>
@@ -140,6 +130,64 @@
             <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
         </Style>
 
+        <Style x:Key="PluginWatermarkTextBox" TargetType="TextBox">
+            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+            <Setter Property="Background" Value="{DynamicResource BrushPanelAlt}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Grid>
+                            <Border x:Name="Bd" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                <ScrollViewer x:Name="PART_ContentHost"/>
+                            </Border>
+                            <TextBlock x:Name="Watermark" Margin="12,0,0,0" Foreground="{DynamicResource BrushSubText}" Text="{TemplateBinding Tag}" IsHitTestVisible="False" VerticalAlignment="Center" Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrushPanel}"/>
+                            </Trigger>
+                            <Trigger Property="Text" Value="">
+                                <Setter TargetName="Watermark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PluginCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="Transparent">
+                            <Border x:Name="CheckBorder" Width="22" Height="22" CornerRadius="6" 
+                                    BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1.5" 
+                                    Background="{DynamicResource BrushPanelAlt}">
+                                <Path x:Name="CheckMark" Data="M2,8 L8,14 L18,4" Stroke="White" StrokeThickness="2.5" 
+                                      VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0"/>
+                            </Border>
+                            <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="CheckBorder" Property="Background" Value="{DynamicResource BrushAccentDeep}"/>
+                                <Setter TargetName="CheckBorder" Property="BorderBrush" Value="{DynamicResource BrushAccentLight}"/>
+                                <Setter TargetName="CheckMark" Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="PluginPrimaryButton" TargetType="Button">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background" Value="{DynamicResource BrushAccentDeep}"/>
@@ -157,11 +205,6 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="B" Property="Opacity" Value="0.9"/>
-                                <Setter TargetName="B" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" Opacity="0.4"/>
-                                    </Setter.Value>
-                                </Setter>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="B" Property="RenderTransform">
@@ -171,8 +214,7 @@
                                 </Setter>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4"/>
-                                <Setter Property="Effect" Value="{x:Null}"/>
+                                <Setter TargetName="B" Property="Opacity" Value="0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -187,32 +229,6 @@
                         <GradientStop Color="#CCFF4B4B" Offset="0"/>
                         <GradientStop Color="#CCB00020" Offset="1"/>
                     </LinearGradientBrush>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="10">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="6,2"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="B" Property="Opacity" Value="0.9"/>
-                                <Setter TargetName="B" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="#FFFF4B4B" BlurRadius="10" Opacity="0.6"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="B" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98" CenterX="100" CenterY="20"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
@@ -233,40 +249,48 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="600" /> 
+            <ColumnDefinition Width="600" />
             <ColumnDefinition Width="*" MinWidth="675" />
         </Grid.ColumnDefinitions>
 
         <Border Grid.Column="0" Style="{StaticResource PluginCard}" Margin="10,10,5,10">
             <StackPanel>
-                <DockPanel Margin="0,0,0,20" LastChildFill="False">
+                <DockPanel Margin="0,0,0,15" LastChildFill="False">
                     <TextBlock Text="🗑️ Удаление лотов" Foreground="{DynamicResource BrushAccentLight}" FontSize="20" FontWeight="Black" DockPanel.Dock="Left">
                          <TextBlock.Effect>
                              <DropShadowEffect Color="{DynamicResource ColorAccentLight}" BlurRadius="10" ShadowDepth="0" Opacity="0.3"/>
                          </TextBlock.Effect>
                     </TextBlock>
-                    
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
                         <TextBlock Text="Status:" Foreground="{DynamicResource BrushSubText}" FontSize="11" Margin="0,0,4,0"/>
                         <TextBlock x:Name="PluginStatus" Text="READY" Foreground="#9CF2B2" FontSize="11" FontWeight="Bold"/>
                     </StackPanel>
                 </DockPanel>
 
-                <TextBlock Text="1. Выберите раздел (Node ID)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource BrushText}" Margin="0,0,0,6"/>
-                <ComboBox x:Name="NodeCombo" 
-                          Style="{StaticResource PluginComboBox}"
-                          Margin="0,0,0,20"
+                <TextBlock Text="1. Выберите раздел" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource BrushText}" Margin="0,0,0,6"/>
+                <ComboBox x:Name="NodeCombo" Style="{StaticResource PluginComboBox}" Margin="0,0,0,15"
                           SelectionChanged="NodeCombo_SelectionChanged"/>
 
-                <TextBlock Text="2. Выберите лот для удаления (опционально)" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource BrushText}" Margin="0,0,0,6"/>
-                <ComboBox x:Name="CategoryCombo" 
-                          Style="{StaticResource PluginComboBox}"
-                          Margin="0,0,0,25"
-                          IsEnabled="False"/>
+                <TextBlock Text="2. Выбор лота" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource BrushText}" Margin="0,0,0,6"/>
+                <CheckBox x:Name="ChbSingleMode" Content="Удалить конкретный лот" 
+                          Style="{StaticResource PluginCheckBox}" Margin="0,0,0,10"
+                          IsEnabled="False"
+                          Checked="OnSingleModeChanged" Unchecked="OnSingleModeChanged"/>
 
-                <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,0,0,20" Opacity="0.5"/>
+                <Grid x:Name="OfferSelectPanel" Visibility="Collapsed" Margin="0,0,0,5">
+                    <StackPanel>
+                        <TextBox x:Name="SearchInput" Style="{StaticResource PluginWatermarkTextBox}"
+                                 Tag="🔍 Поиск по названию..." Height="38" Margin="0,0,0,10"
+                                 TextChanged="OnSearchTextChanged"/>
+                        
+                        <ComboBox x:Name="CategoryCombo" Style="{StaticResource PluginComboBox}" Margin="0,0,0,15"
+                                  SelectionChanged="CategoryCombo_SelectionChanged"/>
+                    </StackPanel>
+                </Grid>
 
-                <TextBlock Text="Действия" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource BrushText}" Margin="0,0,0,10"/>
+                <Border Height="1" Background="{DynamicResource BrushBorder}" Margin="0,10,0,20" Opacity="0.5"/>
+
+                <TextBlock Text="3. Действия" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource BrushText}" Margin="0,0,0,10"/>
                 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -277,8 +301,8 @@
                     
                     <Button x:Name="BtnDeleteCategory" 
                             Grid.Column="0"
-                            Content="Удалить 1 лот" 
-                            Height="45"
+                            Content="Удалить выбранный" 
+                            Height="48"
                             Style="{StaticResource PluginPrimaryButton}"
                             Click="OnDeleteCategoryClick"
                             IsEnabled="False"/>
@@ -286,12 +310,12 @@
                     <Button x:Name="BtnDeleteAll" 
                             Grid.Column="2"
                             Content="💀 УДАЛИТЬ ВСЕ" 
-                            Height="45"
+                            Height="48"
                             Style="{StaticResource PluginDangerButton}"
                             Click="OnDeleteAllClick"/>
                 </Grid>
 
-                <TextBlock Text="*Внимание: Удаление всех лотов необратимо." 
+                <TextBlock Text="*Внимание: Удаление всех лотов раздела необратимо." 
                            Foreground="{DynamicResource BrushSubText}" FontSize="11" Margin="0,15,0,0" HorizontalAlignment="Center" FontStyle="Italic"/>
             </StackPanel>
         </Border>
@@ -304,19 +328,15 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,10">
+                <DockPanel Grid.Row="0" Margin="0,0,0,10" LastChildFill="False">
                     <TextBlock Text="Журнал событий" Foreground="{DynamicResource BrushText}" FontWeight="SemiBold" VerticalAlignment="Center" DockPanel.Dock="Left"/>
-                    
-                    <Button Content="Очистить" Width="80" Height="26" 
-                            DockPanel.Dock="Right"
-                            Margin="0,0,5,0"
-                            Click="OnClearPluginLog"
+                    <Button Content="Очистить" Width="80" Height="26" DockPanel.Dock="Right" Click="OnClearPluginLog" 
                             Style="{StaticResource PluginSecondaryButton}" FontSize="11"/>
                 </DockPanel>
-                
-                <Border Grid.Row="1" Height="1" Margin="0,0,0,10" Background="{DynamicResource BrushBorder}" Opacity="0.5"/>
 
-                <Border Grid.Row="2" CornerRadius="8" Background="#11000000">
+                <Border Grid.Row="1" Height="1" Background="{DynamicResource BrushBorder}" Margin="0,0,0,10" Opacity="0.5"/>
+
+                <Border Grid.Row="2" Background="#11000000" CornerRadius="8">
                     <ListBox x:Name="PluginLog" Style="{StaticResource TransparentListBox}" Padding="4">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
@@ -330,56 +350,24 @@
 
         <Grid x:Name="ConfirmationOverlay" Visibility="Collapsed" Panel.ZIndex="999">
             <Border Background="#D9000000" MouseDown="OnOverlayBackgroundClick"/>
-            
-            <Border Width="420" VerticalAlignment="Center" HorizontalAlignment="Center"
-                    CornerRadius="16" Padding="24"
-                    Background="{DynamicResource BrushPanel}"
-                    BorderBrush="{DynamicResource BrushBorder}"
-                    BorderThickness="1">
+            <Border Width="420" VerticalAlignment="Center" HorizontalAlignment="Center" CornerRadius="16" Padding="24" Background="{DynamicResource BrushPanel}" BorderBrush="{DynamicResource BrushBorder}" BorderThickness="1">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="30" ShadowDepth="10" Color="Black" Opacity="0.8"/>
                 </Border.Effect>
-                
                 <StackPanel>
-                    <TextBlock x:Name="ConfirmTitle" 
-                               Text="ПОДТВЕРЖДЕНИЕ" 
-                               Foreground="{DynamicResource BrushAccentLight}" 
-                               FontSize="18" 
-                               FontWeight="Black" 
-                               Margin="0,0,0,10"
-                               HorizontalAlignment="Center"/>
-
-                    <TextBlock x:Name="ConfirmMessage" 
-                               Text="Вы уверены?" 
-                               Foreground="{DynamicResource BrushText}" 
-                               FontSize="14" 
-                               TextWrapping="Wrap" 
-                               TextAlignment="Center"
-                               Margin="0,0,0,25"
-                               LineHeight="20"/>
-
+                    <TextBlock Text="ПОДТВЕРЖДЕНИЕ" Foreground="{DynamicResource BrushAccentLight}" FontSize="18" FontWeight="Black" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="ConfirmMessage" Text="Вы уверены?" Foreground="{DynamicResource BrushText}" FontSize="14" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,25" LineHeight="20"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="15"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <Button Grid.Column="0" 
-                                Content="Отмена" 
-                                Click="OnOverlayCancelClick"
-                                Height="40"
-                                Style="{StaticResource PluginSecondaryButton}"/>
-
-                        <Button Grid.Column="2" 
-                                Content="Удалить" 
-                                Click="OnOverlayConfirmClick"
-                                Height="40"
-                                Style="{StaticResource PluginDangerButton}"/>
+                        <Button Grid.Column="0" Content="Отмена" Click="OnOverlayCancelClick" Height="40" Style="{StaticResource PluginSecondaryButton}"/>
+                        <Button Grid.Column="2" Content="Удалить" Click="OnOverlayConfirmClick" Height="40" Style="{StaticResource PluginDangerButton}"/>
                     </Grid>
                 </StackPanel>
             </Border>
         </Grid>
-
     </Grid>
 </UserControl>

@@ -1,12 +1,16 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text; 
 using System.Text.Json; 
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using System.Linq;
+using System.Management; // Обязательно убедитесь, что System.Management подключен в NuGet
 
 namespace FPBooster.ServerApi
 {
@@ -20,12 +24,24 @@ namespace FPBooster.ServerApi
         private string? _jwtToken;
         private readonly HttpClient _httpClient;
         private readonly JsonSerializerOptions _jsonOptions;
+        
+        // Путь к сессии Лаунчера
+        private static readonly string SessionPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+            "FPBooster", 
+            "session.dat");
 
-        public bool IsAuthorized => true;
+        public bool IsAuthorized { get; private set; } = false;
+        public string? CurrentHwid { get; private set; }
 
         private CloudApiClient()
         {
-            _httpClient = new HttpClient
+            var handler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+
+            _httpClient = new HttpClient(handler)
             {
                 BaseAddress = new Uri(BaseUrl),
                 Timeout = TimeSpan.FromSeconds(30)
@@ -39,20 +55,104 @@ namespace FPBooster.ServerApi
                 AllowTrailingCommas = true,
             };
 
-            string devToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4IiwiZW1haWwiOiJkb2JyeW1heDcwQGdtYWlsLmNvbSIsImlhdCI6MTc2NjA3OTQwMiwiZXhwIjoyMDgxNDM5NDAyfQ.frAxKkPm9ILpvb-IdOIZmdzpTJMhilTk-CunrNYFVeQ";
-            ApplyToken(devToken);
+            // Вместо хардкода токена инициализируем сессию
+            InitializeSession();
         }
 
-        public bool TryLoadToken() => true;
+        public void InitializeSession()
+        {
+            try
+            {
+                // 1. HWID
+                CurrentHwid = GenerateHwid();
+                if (!_httpClient.DefaultRequestHeaders.Contains("X-HWID"))
+                {
+                    _httpClient.DefaultRequestHeaders.Add("X-HWID", CurrentHwid);
+                }
+
+                // 2. Читаем токен из файла лаунчера
+                if (File.Exists(SessionPath))
+                {
+                    var token = File.ReadAllText(SessionPath).Trim();
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        ApplyToken(token);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CloudApi] Session Init Error: {ex.Message}");
+            }
+        }
+
+        public bool TryLoadToken() 
+        {
+            InitializeSession();
+            return IsAuthorized;
+        }
 
         public void ApplyToken(string token)
         {
             _jwtToken = token;
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _jwtToken);
+            
+            // Оригинальная логика cookie для совместимости
             if (_httpClient.DefaultRequestHeaders.Contains("Cookie"))
                 _httpClient.DefaultRequestHeaders.Remove("Cookie");
             _httpClient.DefaultRequestHeaders.Add("Cookie", $"user_auth={_jwtToken}");
+            
+            IsAuthorized = true;
         }
+
+        // --- ГЕНЕРАЦИЯ HWID (Копия логики Лаунчера) ---
+        private static string GenerateHwid()
+        {
+            try
+            {
+                string cpu = GetIdentifier("Win32_Processor", "ProcessorId");
+                string hdd = GetIdentifier("Win32_DiskDrive", "SerialNumber");
+                string board = GetIdentifier("Win32_BaseBoard", "SerialNumber");
+
+                string rawId = $"{cpu}-{hdd}-{board}";
+
+                using (SHA256 sha256 = SHA256.Create())
+                {
+                    byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawId));
+                    StringBuilder builder = new StringBuilder();
+                    for (int i = 0; i < bytes.Length; i++)
+                    {
+                        builder.Append(bytes[i].ToString("x2"));
+                    }
+                    return builder.ToString();
+                }
+            }
+            catch
+            {
+                return "UNKNOWN-HWID";
+            }
+        }
+
+        private static string GetIdentifier(string wmiClass, string wmiProperty)
+        {
+            string result = "";
+            try
+            {
+                ManagementClass mc = new ManagementClass(wmiClass);
+                ManagementObjectCollection moc = mc.GetInstances();
+                foreach (ManagementObject mo in moc)
+                {
+                    if (result == "")
+                    {
+                        try { result = mo[wmiProperty]?.ToString() ?? ""; break; } catch { }
+                    }
+                }
+            }
+            catch { }
+            return result;
+        }
+
+        // --- API HELPERS ---
 
         private async Task<T?> GetJsonAsync<T>(string url)
         {
@@ -98,6 +198,8 @@ namespace FPBooster.ServerApi
                 return new BaseResponse { Success = false, Message = $"Сеть: {ex.Message}" }; 
             }
         }
+
+        // --- МЕТОДЫ API (Восстановленные сигнатуры для плагинов) ---
 
         public async Task<BaseResponse> SetAutoBumpAsync(string key, List<string> nodes, bool active)
         {
@@ -151,6 +253,15 @@ namespace FPBooster.ServerApi
             } catch { return null; }
         }
 
+        public async Task<List<FetchedOffer>> GetProductsAsync()
+        {
+            // Заглушка, если метод вызывается в MainWindow. 
+            // Реальная реализация зависит от API сервера, но чтобы билд прошел, вернем пустой список.
+            return new List<FetchedOffer>();
+        }
+        
+        // --- МОДЕЛИ ДАННЫХ (Восстановленные) ---
+
         public class SetAutoBumpRequest
         {
             [JsonPropertyName("golden_key")] public string GoldenKey { get; set; } = "";
@@ -182,7 +293,7 @@ namespace FPBooster.ServerApi
 
         public class LotRestockConfig {
             [JsonPropertyName("node_id")] public string NodeId { get; set; } = "";
-            [JsonPropertyName("node_name")] public string NodeName { get; set; } = ""; // Важно передавать имя
+            [JsonPropertyName("node_name")] public string NodeName { get; set; } = ""; 
             [JsonPropertyName("offer_id")] public string OfferId { get; set; } = "";
             [JsonPropertyName("name")] public string Name { get; set; } = "";
             [JsonPropertyName("min_qty")] public int MinQty { get; set; }
@@ -195,7 +306,7 @@ namespace FPBooster.ServerApi
             [JsonPropertyName("active")] public bool Active { get; set; }
             [JsonPropertyName("message")] public string Message { get; set; } = "";
             [JsonPropertyName("lots")] public List<LotStatusInfo> Lots { get; set; } = new();
-            [JsonPropertyName("next_check")] public DateTime? NextCheck { get; set; } // НОВОЕ ПОЛЕ
+            [JsonPropertyName("next_check")] public DateTime? NextCheck { get; set; } 
         }
 
         public class LotStatusInfo 
@@ -207,8 +318,6 @@ namespace FPBooster.ServerApi
             [JsonPropertyName("min_qty")] public int MinQty { get; set; }
             [JsonPropertyName("keys_in_db")] public int KeysInDb { get; set; }
             [JsonPropertyName("auto_enable")] public bool AutoEnable { get; set; }
-            
-            // НОВОЕ: Получаем список строк обратно
             [JsonPropertyName("source_text")] public List<string> SourceText { get; set; } = new();
         }
 
